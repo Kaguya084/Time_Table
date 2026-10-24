@@ -300,7 +300,12 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
 <section id="v-memo" class="hide">
   <div class="card">
     <h2>粘贴通知 <span class="sub">→ 交给连小理解析</span></h2>
-    <textarea id="nRaw" placeholder="把群里 / 公告里的通知原文整段粘贴到这里，例如：&#10;请于第八周周三 23:55 前完成第三章作业，共 5 题，满分 100，逾期不补。"></textarea>
+    <div class="cats" id="srcSel">
+      <button class="cat tool" data-src="chat">班级群通知</button>
+      <button class="cat tool" data-src="wxmp">公众号推送</button>
+    </div>
+    <div class="sub hide" id="srcTip" style="margin-bottom:8px;line-height:1.7"></div>
+    <textarea id="nRaw"></textarea>
     <div class="lgrow" style="margin-top:10px">
       <button class="add" type="button" id="nGen" style="margin:0">生成解析请求</button>
       <button class="add" type="button" id="nSave" style="margin:0;background:var(--ink3)">暂存原文</button>
@@ -1552,20 +1557,94 @@ function copyText(t, btn, targetEl){
   return legacy();
 }
 
+/* 通知来源：群通知短、权威、通常一条；
+   公众号推送是长文，含多个活动、活动时间与报名截止常并存、还可能是别的学院的 —— 解析策略必须分开。 */
+var noteSrc = "chat";
+var RAW_PH = {
+  chat: "把群里 / 公告里的通知原文整段粘贴到这里，例如：\n请于第八周周三 23:55 前完成第三章作业，共 5 题，满分 100，逾期不补。",
+  wxmp: "粘贴公众号链接（https://mp.weixin.qq.com/s/…）或文章正文都行。\n例如一篇活动推送：含活动时间、报名截止、地点 —— 我会拆成多条。"
+};
+var SRC_TIP = {
+  chat: "",
+  wxmp: "可以只粘链接。链接打不开时连小理会直接告诉你、不会瞎编；关键信息在图片里会标「待确认」，之后你再补。"
+};
+function renderSrc(){
+  var box = document.getElementById("srcSel");
+  Array.prototype.forEach.call(box.querySelectorAll(".cat"), function(b){
+    b.classList.toggle("on", b.getAttribute("data-src") === noteSrc);
+    b.onclick = function(){
+      noteSrc = b.getAttribute("data-src"); renderSrc();
+    };
+  });
+  document.getElementById("nRaw").placeholder = RAW_PH[noteSrc];
+  var tip = document.getElementById("srcTip");
+  tip.textContent = SRC_TIP[noteSrc];
+  tip.classList.toggle("hide", !SRC_TIP[noteSrc]);
+}
+
 function buildPrompt(raw){
   var w = currentWeek();
-  return "请把下面这条通知原文解析为结构化事项，只输出 JSON 数组，不要任何解释。\n"
+  /* 拿不准的不要憋着：先给 JSON，再把疑点列出来问 —— 用户补一句就能定下，比留 null 有用 */
+  var ASK = "\n最后一步（不管哪种来源都要做）：\n"
+    + "输出 JSON **之后**，把你拿不准的地方逐条列出来问我：\n"
+    + "· 哪个日期是你推断出来的、原文其实没写\n"
+    + "· 哪些关键信息在图片里、你读不到\n"
+    + "· 哪些条目你判断「可能与我无关」但拿不准\n"
+    + "· 有没有你本想输出但觉得证据不足而放弃的条目\n"
+    + "先给 JSON，再提问题 —— 不要因为要问我就不输出 JSON，也不要自己憋着。\n";
+  var head = "请把下面的原文解析为结构化事项，只输出 JSON 数组，不要任何解释。\n"
     + "字段：title / date(YYYY-MM-DD) / time(HH:MM) / type / priority(high|medium|low) / note\n"
     + "\ntype 只能取三个值，按含义分类：\n"
     + "- \"ddl\"：有截止时间、要交出东西的（作业、报告、报名、缴费、材料提交）\n"
     + "- \"activity\"：要到场参加的（讲座、班会、考试、集会、体检、志愿活动）\n"
     + "- \"personal\"：只和自己有关的私人安排（取快递、给家里打电话、预约、买东西）\n"
-    + "\n规则：\n"
+    + "\n通用规则：\n"
     + "1. 今天是 " + ymd(new Date()) + "，本学期第 " + w + " 周；第 1 周周一 = " + TERM.firstMonday
-    + "。通知里的“第八周”“下周三”等请据此换算成具体日期。\n"
-    + "2. 没有明确时间的填 time:\"23:59\"；信息不足的字段填 null，并在 note 里写“待确认”，禁止编造。\n"
-    + "3. 一条通知含多个事项就输出多个对象，各自独立分类，不要把多件事揉成一条。\n"
-    + "4. 上课 / 调课 / 停课信息不要输出 —— 课表由教务系统单独维护。\n"
+    + "。“第八周”“下周三”等请据此换算成具体日期。\n"
+    + "2. **每个日期都要能追溯到原文**：note 里用「依据：」附上你据以判断的那句原文（简短引用即可）。\n"
+    + "   信息不足 → 该字段填 null，note 写“待确认”。\n"
+    + "   **禁止把你推断出来的日期当成原文写了的日期** —— 推断不是事实，写进 note 说明即可，不要填进 date。\n"
+    + "3. 没有明确时间的填 time:\"23:59\"。上课 / 调课 / 停课信息不要输出 —— 课表由教务系统单独维护。\n";
+
+  if(noteSrc === "wxmp"){
+    return head
+      + "\n这是【微信公众号推送】，和班级群通知不一样，请额外遵守：\n"
+      + "4. 一篇文章常含多个活动 —— 每个独立输出一条，不要合并。\n"
+      + "5. 活动时间与报名截止是两个不同的时间点，必须分开输出：\n"
+      + "   · 报名 / 交材料的截止 → type 用 \"ddl\"\n"
+      + "   · 活动本身举行的时间 → type 用 \"activity\"\n"
+      + "   只看到一个时间时，先判断它是哪一种，不要默认当成活动。\n"
+      + "6. title 用具体活动名，不要照抄公众号文章标题（那通常只是宣传语）。\n"
+      + "7. 报名链接、地点、主办方、参与对象写进 note。\n"
+      + "8. 忽略排版噪声：关注引导、“阅读原文”、在看 / 点赞、往期推荐、二维码说明、文末编辑署名。\n"
+      + "9. 相关性判断：明显不是面向我的（其他学院 / 其他校区 / 已结束 / 需选拔但我不符合）\n"
+      + "   → 该条加 \"todo\": true，并在 note 里写明原因，仍然输出，不要自行丢弃。\n"
+      + "10. 输入有可能只是一个链接而不是正文（文章里常有图片，直接复制会丢内容）：\n"
+      + "    · 先尝试访问该链接拿到正文，再按上面规则解析。\n"
+      + "    · 打不开（微信环境校验 / 需要登录 / 返回空）→ 直接回我一句\n"
+      + "      「这个链接打不开，请把正文复制给我」，然后停止，不要输出 JSON。\n"
+      + "      凭链接或标题编造内容是这里最严重的错误 —— 宁可什么都不输出。\n"
+      + "    · 关键信息只在图片里（海报上的时间 / 地点）而你读不到 → 该字段填 null，\n"
+      + "      并在 note 写「待确认·在图片里」，不要猜。\n"
+      + "\n【截止时间最容易编错，单独强调】\n"
+      + "11. 一条 ddl 只有在原文**明示**时才成立：出现「报名截止」「请于…前提交」\n"
+      + "    「截止日期」「deadline」「逾期不补」这类明确表述，才算数。\n"
+      + "    下列都是**旁证，不是截止时间**，严禁拿它们推算 ddl：\n"
+      + "    · 二维码 / 链接的有效期（那是失效时间，不是报名截止）\n"
+      + "    · 推文发布日期 + 「7 天内」「近期」「尽快」「即日起」这类模糊表述\n"
+      + "    · 往期推文、页眉页脚、页面上的其它日期\n"
+      + "    · 由活动时间倒推出来的时间\n"
+      + "    原文没有明确截止时间 → **不要凭空产出 ddl 条目**，只输出 activity。\n"
+      + "    这不算「自行丢弃」，因为那条 ddl 本来就不存在于原文里。\n"
+      + "12. 逻辑自检：如果你推出的截止时间**晚于或紧邻活动开始时间**\n"
+      + "    （例如活动 10-24 18:00 举行、却推出 10-25 截止），说明推错了 ——\n"
+      + "    该条 date 填 null，note 写明矛盾点，不要硬给一个日期。\n"
+      + ASK
+      + "\n--- 原文 ---\n" + raw;
+  }
+  return head
+    + "4. 一条通知含多个事项就输出多个对象，各自独立分类，不要把多件事揉成一条。\n"
+    + ASK
     + "\n--- 通知原文 ---\n" + raw;
 }
 
@@ -1587,6 +1666,7 @@ function renderNotes(){
       var id = b.getAttribute("data-id"), f = null;
       loadNotes().forEach(function(x){ if(x.id === id) f = x; });
       if(!f) return;
+      noteSrc = f.src || "chat"; renderSrc();      // 用回当初的来源，否则重新生成会走默认
       document.getElementById("nRaw").value = f.text;
       genPrompt();
       document.getElementById("nRaw").scrollIntoView({ behavior:"smooth", block:"center" });
@@ -1617,7 +1697,7 @@ document.getElementById("nCopy").onclick = function(){
            document.getElementById("nOut"));
 };
 /* 连小理回传 JSON → 批量导入（带容错 + 人眼确认） */
-var pendItems = [];
+var pendItems = [], pendSkipped = [];
 function extractJSON(t){
   t = String(t).replace(/```(?:json)?/g, "").trim();
   var i = t.indexOf("["), j = t.lastIndexOf("]");
@@ -1636,19 +1716,31 @@ function normItem(o){
   var type = ["ddl","activity","personal"].indexOf(o.type) >= 0 ? o.type : "ddl";
   var pri  = ["high","medium","low"].indexOf(o.priority) >= 0 ? o.priority : "medium";
   return { id: uid(), title: title, date: date, time: time, type: type,
-           priority: pri, note: String(o.note || "").trim(), done: false };
+           priority: pri, note: String(o.note || "").trim(),
+           todo: !!o.todo,          // 公众号解析出的「和我有关吗」存疑标记
+           done: false };
 }
 function renderPreview(){
   var el = document.getElementById("nPreview");
   if(!pendItems.length){ el.classList.add("hide"); el.innerHTML = ""; return; }
   el.classList.remove("hide");
+  var unsure = pendItems.filter(function(x){ return x.todo; }).length;
   el.innerHTML = '<div class="sub" style="margin:10px 0 6px">请人眼核对 '
-    + pendItems.length + ' 条（解析结果不直接信）</div>'
+    + pendItems.length + ' 条（解析结果不直接信）'
+    + (unsure ? ' · <span style="color:var(--red)">' + unsure + ' 条存疑</span>' : '')
+    + '</div>'
     + pendItems.map(function(x, i){
-        return '<div class="noteitem"><span class="txt">' + escHtml(x.date + " " + x.time
-          + " · " + x.title + (x.note ? " · " + x.note : "")) + '</span>'
-          + '<button class="use" data-i="' + i + '">删</button></div>';
+        return '<div class="noteitem"><span class="txt">'
+          + (x.todo ? '<span class="pill p-medium">存疑</span>' : '')
+          + escHtml(x.date + " " + x.time + " · " + x.title + (x.note ? " · " + x.note : ""))
+          + '</span>' + '<button class="use" data-i="' + i + '">删</button></div>';
       }).join("")
+    + (pendSkipped.length
+        ? '<div class="sub" style="margin-top:8px;color:var(--red);line-height:1.7">'
+          + '另外 <b>' + pendSkipped.length + '</b> 条没进来（不是丢了，是没日期进不了日历）：<br>'
+          + pendSkipped.map(function(s){ return "· " + escHtml(s.title) + "（" + s.why + "）"; }).join("<br>")
+          + '<br>需要的话在「添加事项」里手动补上日期。</div>'
+        : '')
     + '<button class="add" type="button" id="nConfirm" style="margin-top:8px">确认导入 '
     + pendItems.length + ' 条</button>';
   Array.prototype.forEach.call(el.querySelectorAll(".use"), function(b){
@@ -1660,7 +1752,7 @@ function renderPreview(){
     if(!pendItems.length) return;
     var a = loadEvts();
     pendItems.forEach(function(x){ a.push(x); });
-    saveEvts(a); pendItems = []; renderPreview(); renderMemo();
+    saveEvts(a); pendItems = []; pendSkipped = []; renderPreview(); renderMemo();
     document.getElementById("nBack").value = "";
     document.getElementById("nRaw").value = "";
     document.getElementById("nOutWrap").classList.add("hide");
@@ -1678,7 +1770,19 @@ document.getElementById("nImport").onclick = function(){
     b.textContent = "没识别出 JSON"; setTimeout(function(){ b.textContent = "解析并预览"; }, 1600);
     return;
   }
-  pendItems = arr.map(normItem).filter(Boolean);
+  var normed = arr.map(normItem);
+  pendItems = normed.filter(Boolean);
+  /* 被丢掉的必须让你看见 —— 否则「决赛」「待确认」这类条目静默消失，你根本不知道少了什么 */
+  pendSkipped = [];
+  arr.forEach(function(o, i){
+    if(normed[i]) return;
+    if(!o || typeof o !== "object") return;
+    var t = String(o.title || "").trim();
+    var d = String(o.date || "").trim();
+    if(!t){ pendSkipped.push({ title:"(无标题条目)", why:"缺标题" }); return; }
+    pendSkipped.push({ title: t,
+      why: /^\d{4}-\d{2}-\d{2}$/.test(d) ? "字段不合规" : "缺日期（连小理没填，所以不进日历）" });
+  });
   renderPreview();
   if(!pendItems.length){
     var b2 = document.getElementById("nImport");
@@ -1690,7 +1794,8 @@ document.getElementById("nSave").onclick = function(){
   var raw = document.getElementById("nRaw").value.trim();
   if(!raw) return;
   var a = loadNotes();
-  a.unshift({ id: uid(), at: todayStr(), ts: new Date().toISOString(), text: raw });
+  a.unshift({ id: uid(), at: todayStr(), ts: new Date().toISOString(),
+              src: noteSrc, text: raw });
   saveNotes(a.slice(0, 20));
   document.getElementById("nRaw").value = "";
   document.getElementById("nOutWrap").classList.add("hide");
@@ -1774,7 +1879,7 @@ if(localStorage.getItem(K_EVT)===null){          // 首次打开：注入预置�
   localStorage.setItem(K_EVT, JSON.stringify(DEFAULT_EVENTS));
 }
 document.getElementById("fDate").value = todayStr();
-renderGutter(); renderCats(); renderMemoCats(); renderWeek(); renderMemo(); renderNotes(); renderMark(); renderLog(); refreshSync();
+renderGutter(); renderCats(); renderMemoCats(); renderWeek(); renderMemo(); renderSrc(); renderNotes(); renderMark(); renderLog(); refreshSync();
 </script>
 </body>
 </html>
