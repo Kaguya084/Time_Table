@@ -180,7 +180,15 @@ button.add:active{opacity:.75}
 .row.editing{background:var(--bg2);border-radius:9px;padding-left:6px;padding-right:6px}
 .edithint{color:var(--purple);font-weight:600}
 .rp{font-size:11px;color:var(--ink3);margin-left:3px}
-.adbars{padding:2px 2px 0}
+.bbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.bbar select{width:auto;height:32px;flex:none;padding:0 8px;font-size:12px}
+.bbar .add{width:auto;flex:none;padding:0 14px}
+.bbar .sub{flex:none;margin:0}
+.cat.tool{color:var(--ink3)}
+.cat.tool.on{color:var(--purple);border-color:var(--purple);background:var(--purple-bg)}
+.pick{width:17px;height:17px;flex:none;margin:0 6px 0 0}
+/* 高度必须固定：有的列有全天条、有的没有，不定高会把整周网格顶错位 */
+.adbars{height:22px;padding:2px 2px 0;overflow:hidden}
 .adbar{font-size:10px;border-radius:5px;padding:2px 4px;margin-bottom:2px;line-height:1.3;
   overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:#fff}
 .adbar.ddl{background:#e24b4a}
@@ -206,7 +214,7 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
 <header>
   <div class="hd-l">
     <h1>校园日程助手</h1>
-    <p class="sub">2026届信息与计算科学（强基班）· 课表由连小理解析生成</p>
+    <p class="sub">课表由连小理解析生成 · 数据保存在本机浏览器</p>
   </div>
   <button class="btn" id="btnExport">导出 ics</button>
 </header>
@@ -219,8 +227,8 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
 
 <div class="tabs">
   <button class="tab on" data-v="week">日程表</button>
-  <button class="tab" data-v="memo">备忘录</button>
-  <button class="tab" data-v="log">成效</button>
+  <button class="tab" data-v="memo">新增事项</button>
+  <button class="tab" data-v="log">其他</button>
 </div>
 
 <!-- 课表页 -->
@@ -247,11 +255,8 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
     <div id="expTip" class="hide" style="background:var(--teal-bg);color:var(--teal);border-radius:8px;
       padding:9px 11px;font-size:12.5px;margin-top:10px;line-height:1.7"></div>
     <div class="sub" style="margin-top:10px;line-height:1.75">
-      <strong>iOS 导入规则（已实测）：按 UID 判定「有没有」，没有「更新」这一说。</strong><br>
-      UID 已存在 → <strong>跳过</strong>（改了内容也不会覆盖）；UID 不存在 → 新增。<br>
-      所以<strong>修改已有日程 = 必须先删再导</strong>，每次都是整类全量替换：<br>
-      <b>① 删除</b>：iPhone 设置 → 日历 → 点进「课程表」→ 删除日历（可整类一次删)<br>
-      <b>② 导入</b>：打开刚下载的 .ics → 添加到日历</div>
+      <b>① 删除</b>：日历 → 点进「课程表」→ 删除日历（可整类一次删）（类型设置在导入步骤）<br>
+      <b>② 导入</b>：打开刚下载的 .ics → 添加到日历 → 添加日历 → 设置一个日历名称</div>
   </div>
   <div class="card">
     <h2>导入 / 更新课程表 <span class="sub">→ 交给连小理解析</span></h2>
@@ -263,7 +268,7 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
     <button class="add hide" type="button" id="cCopy" style="margin-top:8px">复制请求</button>
     <div style="border-top:1px solid var(--line);margin-top:12px;padding-top:12px">
       <div class="sub" style="margin-bottom:6px">把连小理返回的 JSON 粘回来</div>
-      <textarea id="cBack" placeholder='{"term":{"firstMonday":"2026-08-31"},"courses":[{"name":"数学分析1","day":1,"start":"08:00","end":"09:35","room":"综159*","w":"4-17"}]}'
+      <textarea id="cBack" placeholder='{"term":{"firstMonday":"2026-08-31"},"courses":[{"name":"高等数学(上)","short":"高数","day":1,"start":"08:00","end":"09:35","room":"教学楼A101","w":"1-16"}]}'
         style="min-height:96px;font-size:12px"></textarea>
       <button class="add" type="button" id="cImport" style="margin-top:8px">解析并预览</button>
       <div id="cPreview" class="hide"></div>
@@ -287,14 +292,15 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
     <div id="icsPreview" class="hide"></div>
   </div>
   <div class="tip">课表为<strong>只读</strong>：它的权威来源是教务系统，在这里改会和教务系统不一致。<br>
-  遇到调课 / 停课，请在对话里告诉连小理，改好后重新导出 ics。</div>
+  遇到调课 / 停课，请在对话里告诉连小理，改好后重新导出 ics。<br>
+  课表 PDF 在 http://jxgl.dlut.edu.cn/student/login → 我的课表 → 大课表 处查询。</div>
 </section>
 
 <!-- 备忘录页 -->
 <section id="v-memo" class="hide">
   <div class="card">
     <h2>粘贴通知 <span class="sub">→ 交给连小理解析</span></h2>
-    <textarea id="nRaw" placeholder="把群里 / 公告里的通知原文整段粘贴到这里，例如：&#10;请各班同学于第八周周三 23:55 前完成高等代数作业，题量 1，满分 100，逾期不补。"></textarea>
+    <textarea id="nRaw" placeholder="把群里 / 公告里的通知原文整段粘贴到这里，例如：&#10;请于第八周周三 23:55 前完成第三章作业，共 5 题，满分 100，逾期不补。"></textarea>
     <div class="lgrow" style="margin-top:10px">
       <button class="add" type="button" id="nGen" style="margin:0">生成解析请求</button>
       <button class="add" type="button" id="nSave" style="margin:0;background:var(--ink3)">暂存原文</button>
@@ -306,7 +312,7 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
     </div>
     <div id="nBackWrap">
       <div class="sub" style="margin:12px 0 6px">把连小理返回的 JSON 粘回来（带解释文字或 ``` 围栏也能识别）</div>
-      <textarea id="nBack" placeholder='[{"title":"高等代数 第八周作业","date":"2026-10-28","time":"23:55","type":"ddl","priority":"high","note":"题量 1"}]'
+      <textarea id="nBack" placeholder='[{"title":"第三章作业","date":"2026-10-28","time":"23:55","type":"ddl","priority":"high","note":"共 5 题"}]'
         style="min-height:96px;font-size:12px"></textarea>
       <button class="add" type="button" id="nImport" style="margin-top:8px">解析并预览</button>
       <div id="nPreview" class="hide"></div>
@@ -352,6 +358,25 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
   <div class="card">
     <h2>全部事项 <span class="sub" id="memoCount"></span></h2>
     <div class="cats" id="memoCats"></div>
+    <div class="bbar hide" id="memoBatch">
+      <span class="sub" id="selCount">已选 0 条</span>
+      <button class="cat" id="selAll">全选</button>
+      <button class="cat" id="selNone">清空</button>
+      <select id="bType">
+        <option value="">类型：不改</option>
+        <option value="ddl">→ DDL</option>
+        <option value="activity">→ 活动</option>
+        <option value="personal">→ 个人</option>
+      </select>
+      <select id="bPri">
+        <option value="">优先级：不改</option>
+        <option value="high">→ 高</option>
+        <option value="medium">→ 中</option>
+        <option value="low">→ 低</option>
+      </select>
+      <button class="add" id="bApply" style="margin:0">应用</button>
+      <button class="cat" id="bExit">退出批量</button>
+    </div>
     <div id="memoList"></div>
   </div>
   <div class="tip">分类怎么选：<b>DDL</b> = 有截止、要交东西的；<b>活动</b> = 要到场参加的；<b>个人</b> = 只跟自己有关的私事。<br>
@@ -362,42 +387,6 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
 <!-- 成效页 -->
 <section id="v-log" class="hide">
   <div class="card">
-    <h2>今日记录 <span class="sub">睡前 10 秒</span></h2>
-    <div class="lgrow">
-      <div class="lgbox">
-        <label>今天漏了几件事？<br>（忘带东西 / 错过截止 / 记错时间）</label>
-        <div class="step">
-          <button type="button" onclick="bump('logMiss',-1)">−</button>
-          <b id="logMiss">0</b>
-          <button type="button" onclick="bump('logMiss',1)">＋</button>
-        </div>
-      </div>
-      <div class="lgbox">
-        <label>记一件事<br>平均花几分钟？</label>
-        <div class="step">
-          <button type="button" onclick="bump('logMin',-1)">−</button>
-          <b id="logMin">0</b>
-          <button type="button" onclick="bump('logMin',1)">＋</button>
-        </div>
-      </div>
-    </div>
-    <label class="switch"><input type="checkbox" id="logOn"> 今天 iOS 日历提醒已生效</label>
-    <button class="add" type="button" id="logSave">保存今日记录</button>
-    <div class="sub" id="logHint" style="margin-top:8px"></div>
-  </div>
-  <div class="card stat">
-    <h2>统计</h2>
-    <div id="logStat"></div>
-  </div>
-  <div class="card">
-    <h2>记录明细</h2>
-    <div id="logList"></div>
-    <button class="add" type="button" id="logCopy" style="margin-top:10px">复制为文本</button>
-  </div>
-  <div class="tip">这是<strong>唯一补不回来</strong>的数据：漏事次数只能靠每天记，事后回想不算数。<br>
-  建议 10-24～10-26 先<strong>不启用</strong>提醒（照旧），10-27 导入日历后勾上「提醒已生效」，这样才有前后对比。</div>
-
-  <div class="card">
     <h2>数据备份 / 迁移</h2>
     <div class="sub" style="margin-bottom:9px;line-height:1.7">
       数据存在<strong>浏览器本地</strong>，按网址隔离 —— 换网址（比如换到 GitHub Pages）就等于换了一份空数据。<br>
@@ -407,6 +396,10 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
     <textarea id="bkIn" placeholder="把复制出来的那串 JSON 粘到这里" style="min-height:70px;font-size:11px;margin-top:10px"></textarea>
     <button class="add" type="button" id="bkRestore" style="margin-top:8px">粘贴并恢复</button>
     <div class="sub" id="bkTxt" style="margin-top:8px"></div>
+    <div style="border-top:1px solid var(--line);margin-top:12px;padding-top:12px">
+      <button class="add" type="button" id="bkClear" style="margin:0;background:var(--red)">清空本机全部数据</button>
+      <div class="sub" style="margin-top:8px">会清掉课表、事项、基线记录、汇总标记 —— <strong>建议先复制备份</strong>。清完回到空状态，可重新导入。</div>
+    </div>
   </div>
 </section>
 
@@ -417,10 +410,12 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
 </div>
 
 <script>
-/* ============ 数据（由 schedule.json 内嵌，已脱敏：无姓名 / 学号） ============ */
+/* ============ 数据（本文件不含任何个人信息，课表 / 事项由使用者导入） ============
+   网页本体是「空壳」：COURSES 与 DEFAULT_EVENTS 均为空，所有数据存浏览器本地。
+   TERM.firstMonday 只是占位默认值，导入课表时会被覆盖。 */
 var TERM = { firstMonday: "2026-08-31", minWeek: 1, maxWeek: 18 };
 var DATA_VERSION = "v1-20261024";
-var CALNAME = "2026届信息与计算科学(强基班)";
+var CALNAME = "校园日程";
 
 /* 四类日程：课表来自教务系统（只读），后三类来自备忘录。
    导出时每类一个独立 ics 文件，导入 iPhone 后是四个可分别开关的日历。 */
@@ -434,29 +429,11 @@ var showCats = { course:true, activity:true, ddl:true, personal:true };  // 默�
 function catOf(k){ for(var i=0;i<CATS.length;i++) if(CATS[i].k===k) return CATS[i]; return CATS[0]; }
 function catLabel(k){ return catOf(k).label; }
 
-var COURSES = [
-  {id:"c01",name:"数学分析1",day:1,start:"08:00",end:"09:35",room:"综159*",w:"4-17"},
-  {id:"c02",name:"高等代数1",day:1,start:"10:05",end:"11:40",room:"建205*",w:"4,7-17"},
-  {id:"c03",name:"计算思维",full:"计算思维与Python语言B(11)",day:1,start:"13:30",end:"15:05",room:"综255*",w:"4-15"},
-  {id:"c04",name:"计算思维",full:"计算思维与Python语言B(11)",day:1,start:"15:35",end:"17:10",room:"机房410-412",w:"6,8,10,12,14,15"},
-  {id:"c05",name:"习思想",full:"习近平新时代中国特色社会主义思想(10)",day:2,start:"10:05",end:"11:40",room:"综258*",w:"4-15"},
-  {id:"c06",name:"心理",full:"大学生心理健康教育(上)",day:2,start:"13:30",end:"15:05",room:"B501*",w:"3-10"},
-  {id:"c07",name:"大学英语1",day:2,start:"15:35",end:"17:10",room:"1-410*",w:"3-18"},
-  {id:"c08",name:"生活指导",full:"大学学习与生活指导(12)",day:2,start:"18:00",end:"19:35",room:"综153*",w:"4-11"},
-  {id:"c09",name:"数学分析1",day:3,start:"08:00",end:"09:35",room:"综159*",w:"4-17"},
-  {id:"c10",name:"高等代数1",day:4,start:"08:00",end:"09:35",room:"建205*",w:"4,7-17"},
-  {id:"c11",name:"习思想",full:"习近平新时代中国特色社会主义思想(10)",day:4,start:"13:30",end:"15:05",room:"综258*",w:"4-15"},
-  {id:"c12",name:"军事理论",day:4,start:"15:35",end:"17:10",room:"B105*",w:"3-18"},
-  {id:"c13",name:"数学分析1",day:5,start:"10:05",end:"11:40",room:"综159*",w:"5-17"},
-  {id:"c14",name:"体育",full:"体育—基础1",day:5,start:"13:30",end:"15:05",room:"中心田径场",w:"4-15"}
-];
+/* 课表为空 —— 使用者通过「导入 / 更新课程表」或「导入 ics 文件」填入，存本地 */
+var COURSES = [];
 
-/* 预置真实事项（首次打开时注入，可自行增删改） */
-var DEFAULT_EVENTS = [
-  { id:"e-demo-1", title:"高等代数 第八周作业", date:"2026-10-28", time:"23:55",
-    type:"ddl", priority:"high", done:false,
-    note:"题量 1 · 满分 100 · 开放 10-22 12:06" }
-];
+/* 预置事项为空（首次打开时注入，可自行增删改） */
+var DEFAULT_EVENTS = [];
 
 /* 课表默认内嵌；若用户导入过（存在 localStorage）则以导入的为准 */
 var K_COURSES = "cs_courses_v1";
@@ -478,7 +455,7 @@ function parseWeeks(s){
 }
 COURSES.forEach(function(c){ c.weeks = parseWeeks(c.w); });
 
-var DAY_TOP = 8*60, DAY_BOT = 22*60, PX_PER_MIN = 0.85;
+var DAY_TOP = 5*60, DAY_BOT = 23*60, PX_PER_MIN = 0.85;   // 5:00 - 23:00
 function mins(hhmm){ var a=hhmm.split(":"); return (+a[0])*60 + (+a[1]); }
 function fmDate(){ var p=TERM.firstMonday.split("-"); return new Date(+p[0], +p[1]-1, +p[2]); }
 var FM = fmDate();
@@ -589,16 +566,16 @@ function renderWeek(){
       el.innerHTML='<b>'+escHtml(c.short || c.name)+'</b><span>'+escHtml(c.start+' · '+c.room)+'</span>';
       box.appendChild(el);
     });
-    // 全天事项：列顶部的整日横条
+    // 全天事项：列顶部的整日横条（只画第一条，超出并进计数，避免撑破固定高度）
     var adBox = document.getElementById("a"+d2);
-    evts.forEach(function(e){
-      if(!e.allday || !repeatHit(e, dayStr)) return;
-      nEvt++;
+    var ads = evts.filter(function(e){ return e.allday && repeatHit(e, dayStr); });
+    if(ads.length){
+      nEvt += ads.length;
       var bar = document.createElement("div");
-      bar.className = "adbar " + e.type;
-      bar.textContent = e.title;
+      bar.className = "adbar " + ads[0].type;
+      bar.textContent = ads[0].title + (ads.length > 1 ? " +" + (ads.length-1) : "");
       adBox.appendChild(bar);
-    });
+    }
 
     evts.forEach(function(e){
       if(!repeatHit(e, dayStr) || e.allday) return;
@@ -626,8 +603,14 @@ function renderWeek(){
   var ws=dateOf(curWeek,1), we=dateOf(curWeek,7);
   document.getElementById("wkLabel").innerHTML = "第 "+curWeek+" 周<small>"
     + (ws.getMonth()+1)+"/"+ws.getDate()+" – "+(we.getMonth()+1)+"/"+we.getDate()+"</small>";
-  document.getElementById("wkSum").innerHTML = "本周共 "+n+" 节课 · "+nEvt+" 项事项"
-    + (curWeek===currentWeek()?"（本周）":"（非本周，点上方 ‹ › 切换）")
+  var sum;
+  if(!COURSES.length && !loadEvts().length){
+    sum = '<div class="empty">还没有任何数据。<br>到页面底部用「导入 / 更新课程表」或「导入 ics 文件」把课表装进来。</div>';
+  } else {
+    sum = "本周共 "+n+" 节课 · "+nEvt+" 项事项"
+        + (curWeek===currentWeek()?"（本周）":"（非本周，点上方 ‹ › 切换）");
+  }
+  document.getElementById("wkSum").innerHTML = sum
     + (alias.length?'<div style="margin-top:8px;font-size:11.5px;color:var(--ink3);line-height:1.8">'
         +'课程全称对照：<br>'+alias.map(esc).join("<br>")+'</div>':'');
 }
@@ -640,6 +623,10 @@ function priLabel(p){ return p==="high"?"高":(p==="medium"?"中":"低"); }
 var MEMO_CATS = ["ddl","activity","personal"];
 var showMemoCats = { ddl:true, activity:true, personal:true };
 var editingId = null;
+
+/* 批量修改：所有事项都能参与（导入的 + 原本就有的） */
+var batchMode = false, selIds = {}, lastShown = [];
+function selCount(){ var n=0; for(var k in selIds) if(selIds[k]) n++; return n; }
 
 /* ============ 重复日程（打卡 / 每日提醒） ============ */
 function dOf(s){ var p=String(s).split("-"); return new Date(+p[0], (+p[1])-1, +p[2]); }
@@ -697,8 +684,10 @@ function renderMemoCats(){
     html += '<button class="cat k-'+k+(showMemoCats[k]?" on":"")+'" data-mk="'+k+'">'
           + '<span class="box"></span>'+c.label+'</button>';
   });
+  html += '<button class="cat tool'+(batchMode?" on":"")+'" id="memoBatchBtn">批量修改</button>';
   box.innerHTML=html;
   Array.prototype.forEach.call(box.querySelectorAll(".cat"), function(b){
+    if(!b.getAttribute("data-mk")) return;
     b.onclick=function(){
       var k=b.getAttribute("data-mk");
       showMemoCats[k]=!showMemoCats[k];
@@ -706,6 +695,9 @@ function renderMemoCats(){
       renderMemo();
     };
   });
+  document.getElementById("memoBatchBtn").onclick=function(){
+    batchMode=!batchMode; selIds={}; renderMemoCats(); renderMemo();
+  };
 }
 /* 循环任务看的是「截止日还在不在」，不是「起始日过没过」——
    打卡从 10-24 开始，10-26 看它仍是进行中，不能因为起始日已过就标过期。 */
@@ -719,6 +711,8 @@ function memoRow(e, tStr){
   var over = (!e.done && isOver(e, tStr));
   var overTxt = (e.repeat && e.repeat !== "none") ? "已结束 · " : "已过期 · ";
   return '<div class="row'+(editingId===e.id?" editing":"")+'">'
+    + (batchMode ? '<input type="checkbox" class="pick" data-pick="'+e.id+'"'
+        + (selIds[e.id]?" checked":"") + '>' : '')
     + '<button class="chk'+(e.done?" on":"")+'" data-tog="'+e.id+'">✓</button>'
     + '<div class="rm'+(e.done?" done":"")+'" data-edit="'+e.id+'">'
     +   '<div class="t">'+esc(e.title)+'</div>'
@@ -773,7 +767,7 @@ function renderMemo(){
     box.innerHTML='<div class="empty">当前分类下没有事项 —— 取消上面的勾选可以显示其他分类。</div>';
     return;
   }
-  var html="";
+  var html=""; lastShown=[];
   MEMO_CATS.forEach(function(k){
     if(!showMemoCats[k]) return;
     var arr=shown.filter(function(e){ return e.type===k; }).sort(function(a,b){
@@ -785,11 +779,21 @@ function renderMemo(){
     html += '<div class="grp"><span class="pill p-'+k+'">'+catLabel(k)+'</span>'
           + '<span class="gn">'+arr.length+' 项</span></div>';
     arr.forEach(function(e){
+      lastShown.push(e.id);
       html += memoRow(e, tStr);
       if(editingId===e.id) html += memoEdit(e);
     });
   });
   box.innerHTML=html;
+  document.getElementById("memoBatch").classList.toggle("hide", !batchMode);
+  document.getElementById("selCount").textContent = "已选 " + selCount() + " 条";
+  box.querySelectorAll("[data-pick]").forEach(function(c){
+    c.onclick=function(e){ e.stopPropagation(); };
+    c.onchange=function(){
+      selIds[c.getAttribute("data-pick")] = c.checked;
+      document.getElementById("selCount").textContent = "已选 " + selCount() + " 条";
+    };
+  });
 
   box.querySelectorAll("[data-tog]").forEach(function(b){
     b.onclick=function(){ toggleEvt(b.getAttribute("data-tog")); };
@@ -1089,6 +1093,7 @@ function avg(arr, k){
   return s / arr.length;
 }
 function renderLog(){
+  if(!document.getElementById("logStat")) return;   // 「其他」页已移除记录卡片
   var a = loadLog(), t = todayStr(), cur = null;
   a.forEach(function(x){ if(x.d === t) cur = x; });
   tmpMiss = cur ? cur.miss : 0;
@@ -1140,7 +1145,8 @@ function renderLog(){
     };
   });
 }
-document.getElementById("logSave").onclick = function(){
+var _logSave = document.getElementById("logSave");
+if(_logSave) _logSave.onclick = function(){
   var a = loadLog().filter(function(x){ return x.d !== todayStr(); });
   a.push({ d: todayStr(), miss: tmpMiss, min: tmpMin,
            on: document.getElementById("logOn").checked });
@@ -1148,7 +1154,8 @@ document.getElementById("logSave").onclick = function(){
   var b = document.getElementById("logSave");
   b.textContent = "已保存 ✓"; setTimeout(function(){ b.textContent = "保存今日记录"; }, 1200);
 };
-document.getElementById("logCopy").onclick = function(){
+var _logCopy = document.getElementById("logCopy");
+if(_logCopy) _logCopy.onclick = function(){
   var a = loadLog().slice().sort(function(x,y){ return x.d < y.d ? 1 : -1; });
   var t = "日期\t漏事件数\t录入耗时(分)\t提醒是否生效\n"
         + a.map(function(x){ return x.d + "\t" + x.miss + "\t" + (x.min||0) + "\t" + (x.on ? "是" : "否"); }).join("\n");
@@ -1170,7 +1177,7 @@ var COURSE_PROMPT =
 + '- w：上课周次。连续写 "4-17"；不连续写 "6,8,10,12,14,15"；只有一周写 "7"\n'
 + '- name：课程全称（进日历用，显示在 iPhone 日历里）\n'
 + '- short：**必填**。4 个字以内的简称，显示在手机课表的格子里\n'
-+ '  例：「计算思维与Python语言B」→「计算思维」；「习近平新时代中国特色社会主义思想」→「习思想」\n'
++ '  例：「高等数学(上)」→「高数」；「中国近现代史纲要」→「史纲」\n'
 + '  拿不准就先给一个你建议的，并在最后列出来让我确认\n'
 + '- firstMonday：本学期第一周周一的日期；文件里没有就填 null\n'
 + "\n节次 ↔ 时间映射（已核实，请直接套用）：\n"
@@ -1263,7 +1270,7 @@ document.getElementById("cGen").onclick = function(){
   o.scrollIntoView({ behavior:"smooth", block:"center" });
 };
 document.getElementById("cCopy").onclick = function(){
-  copyText(COURSE_PROMPT, document.getElementById("cCopy"));
+  copyText(COURSE_PROMPT, document.getElementById("cCopy"), document.getElementById("cOut"));
 };
 document.getElementById("cImport").onclick = function(){
   var v = extractJSONAny(document.getElementById("cBack").value);
@@ -1491,28 +1498,58 @@ function loadNotes(){
 }
 function saveNotes(a){ localStorage.setItem(K_NOTE, JSON.stringify(a)); }
 
-/* iOS Safari 兼容的复制：clipboard API 在非 https 环境不可用，只能走 execCommand */
-function copyText(t, btn){
-  var ta = document.createElement("textarea");
-  ta.value = t; ta.setAttribute("readonly", "");
-  ta.style.position = "fixed"; ta.style.top = "0"; ta.style.left = "0";
-  ta.style.width = "1px"; ta.style.height = "1px"; ta.style.opacity = "0";
-  document.body.appendChild(ta);
-  var ok = false;
-  try{
-    ta.contentEditable = "true"; ta.readOnly = false;
-    var r = document.createRange(); r.selectNodeContents(ta);
-    var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
-    ta.setSelectionRange(0, 999999);
-    ok = document.execCommand("copy");
-  }catch(e){}
-  document.body.removeChild(ta);
-  if(btn){
+/* 复制：三级降级
+   ① navigator.clipboard（只在 https / localhost 等安全上下文可用 —— 部署到 GitHub Pages 后走这条）
+   ② execCommand（本地 http 走这条；iOS 要求元素非只读、可见尺寸、字号 ≥16px 才选得中）
+   ③ 都不行就把内容选中，提示手动复制 */
+function copyText(t, btn, targetEl){
+  function flash(v){
+    if(!btn) return;
     var old = btn.textContent;
-    btn.textContent = ok ? "已复制 ✓" : "复制失败，请手动全选";
-    setTimeout(function(){ btn.textContent = old; }, 1600);
+    btn.textContent = v ? "已复制 ✓" : "复制失败 · 已为你选中，长按复制";
+    setTimeout(function(){ btn.textContent = old; }, 1800);
   }
-  return ok;
+  function legacy(){
+    var ta = targetEl, own = false;
+    ta.value = t;                       // 目标框也要写入，否则复制的是旧内容
+    if(!ta){
+      ta = document.createElement("textarea");
+      ta.value = t;
+      ta.style.position = "fixed"; ta.style.left = "0"; ta.style.top = "0";
+      ta.style.opacity = "0"; ta.style.fontSize = "16px";
+      ta.style.padding = "0"; ta.style.border = "0";
+      ta.contentEditable = "true"; ta.readOnly = false;
+      document.body.appendChild(ta);
+      own = true;
+    }
+    var ok = false;
+    try{
+      ta.focus();
+      ta.setSelectionRange(0, t.length);
+      var r = document.createRange(); r.selectNodeContents(ta);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      ok = document.execCommand("copy");
+    }catch(e){ ok = false; }
+    if(own){ try{ ta.remove(); }catch(e){} }
+    if(!ok && targetEl){ try{ targetEl.focus(); targetEl.select(); }catch(e){} }
+    if(!ok && !targetEl){                 // 没有现成输入框：就地生成一个已选中的，供长按复制
+      var box = document.createElement("textarea");
+      box.value = t;
+      box.style.minHeight = "90px"; box.style.fontSize = "11px"; box.style.marginTop = "8px";
+      if(btn && btn.parentNode) btn.parentNode.insertBefore(box, btn.nextSibling);
+      else document.body.appendChild(box);
+      try{ box.focus(); box.select(); }catch(e){}
+    }
+    flash(ok);
+    return ok;
+  }
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext){
+      navigator.clipboard.writeText(t).then(function(){ flash(true); }, legacy);
+      return true;
+    }
+  }catch(e){}
+  return legacy();
 }
 
 function buildPrompt(raw){
@@ -1576,7 +1613,8 @@ function genPrompt(){
 }
 document.getElementById("nGen").onclick = genPrompt;
 document.getElementById("nCopy").onclick = function(){
-  copyText(document.getElementById("nOut").value, document.getElementById("nCopy"));
+  copyText(document.getElementById("nOut").value, document.getElementById("nCopy"),
+           document.getElementById("nOut"));
 };
 /* 连小理回传 JSON → 批量导入（带容错 + 人眼确认） */
 var pendItems = [];
@@ -1685,7 +1723,7 @@ function restoreData(txt){
   return n;
 }
 document.getElementById("bkCopy").onclick = function(){
-  copyText(allData(), document.getElementById("bkCopy"));
+  copyText(allData(), document.getElementById("bkCopy"), document.getElementById("bkIn"));
 };
 document.getElementById("bkRestore").onclick = function(){
   var t = document.getElementById("bkIn").value.trim();
@@ -1695,6 +1733,40 @@ document.getElementById("bkRestore").onclick = function(){
   if(!n){ el.textContent = "没识别出来 —— 确认粘的是「复制全部数据」得到的那串。"; return; }
   el.textContent = "已恢复 " + n + " 项，正在重新加载…";
   setTimeout(function(){ location.reload(); }, 900);
+};
+
+/* 批量修改：类型 / 优先级（导入的 + 原有的事项都能选） */
+document.getElementById("selAll").onclick=function(){
+  lastShown.forEach(function(id){ selIds[id]=true; }); renderMemo();
+};
+document.getElementById("selNone").onclick=function(){ selIds={}; renderMemo(); };
+document.getElementById("bExit").onclick=function(){
+  batchMode=false; selIds={}; renderMemoCats(); renderMemo();
+};
+document.getElementById("bApply").onclick=function(){
+  var t=document.getElementById("bType").value, p=document.getElementById("bPri").value;
+  if(!t && !p){ alert("先选要改成什么「类型」或「优先级」。"); return; }
+  var ids=Object.keys(selIds).filter(function(k){ return selIds[k]; });
+  if(!ids.length){ alert("还没勾选事项。"); return; }
+  var a=loadEvts(), n=0;
+  a.forEach(function(e){
+    if(!selIds[e.id]) return;
+    if(t) e.type=t;
+    if(p) e.priority=p;
+    n++;
+  });
+  saveEvts(a); selIds={}; renderMemo();
+  var b=document.getElementById("bApply");
+  b.textContent="已改 "+n+" 条 ✓"; setTimeout(function(){ b.textContent="应用"; }, 1500);
+};
+
+document.getElementById("bkClear").onclick = function(){
+  if(!confirm("将清空本机全部数据：课表、事项、基线记录、汇总标记。\n"
+    + "建议先点「复制全部数据」备份。\n\n确定清空？")) return;
+  [K_EVT, K_LOG, K_NOTE, K_MARK, K_COURSES, K_SYNC].forEach(function(k){
+    try{ localStorage.removeItem(k); }catch(e){}
+  });
+  location.reload();
 };
 
 /* ============ 启动 ============ */
