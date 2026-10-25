@@ -1645,7 +1645,13 @@ function buildPrompt(raw){
     + "· 有没有你本想输出但觉得证据不足而放弃的条目\n"
     + "先给 JSON，再提问题 —— 不要因为要问我就不输出 JSON，也不要自己憋着。\n";
   var head = "请把下面的原文解析为结构化事项，只输出 JSON 数组，不要任何解释。\n"
-    + "字段：title / date(YYYY-MM-DD) / time(HH:MM) / type / priority(high|medium|low) / note\n"
+    + "字段：title / date(YYYY-MM-DD) / time(HH:MM) / type / priority(high|medium|low) / note"
+    + " / repeat / rEnd\n"
+    + "\nrepeat（重复）与 rEnd（重复截止日）：\n"
+    + "- repeat 只有四个值：不重复 \"none\"；每天 \"daily\"；工作日（周一至周五）\"weekday\"；\n"
+    + "  每周同一天 \"weekly\"。原文是别的周期（每月、每两周、隔天）→ 一律按 \"none\" 处理，没有别的选项。\n"
+    + "- rEnd：重复到哪天为止（YYYY-MM-DD）。原文没写结束日 → 填 null。\n"
+    + "- date 填这个周期的**第一次**日期，不要填中间某一次。\n"
     + "\ntype 只能取三个值，按含义分类：\n"
     + "- \"ddl\"：有截止时间、要交出东西的（作业、报告、报名、缴费、材料提交）\n"
     + "- \"activity\"：要到场参加的（讲座、班会、考试、集会、体检、志愿活动）\n"
@@ -1656,7 +1662,11 @@ function buildPrompt(raw){
     + "2. **每个日期都要能追溯到原文**：note 里用「依据：」附上你据以判断的那句原文（简短引用即可）。\n"
     + "   信息不足 → 该字段填 null，note 写“待确认”。\n"
     + "   **禁止把你推断出来的日期当成原文写了的日期** —— 推断不是事实，写进 note 说明即可，不要填进 date。\n"
-    + "3. 没有明确时间的填 time:\"23:59\"。上课 / 调课 / 停课信息不要输出 —— 课表由教务系统单独维护。\n";
+    + "3. 没有明确时间的填 time:\"23:59\"。上课 / 调课 / 停课信息不要输出 —— 课表由教务系统单独维护。\n"
+    + "4. **判定为重复要保守**：只有原文明确写了「每天」「每个工作日」「每周X」这类周期表述，\n"
+    + "   才设 repeat；单次活动一律 \"none\"。\n"
+    + "   反例：只说「11 月 3 日有讲座」，不能因为它恰好在周二就当成每周二。\n"
+    + "   典型该设重复的例子：打卡、每日签到、每周例会、工作日晨跑、长期值班。\n";
 
   if(noteSrc === "wxmp"){
     return head
@@ -1767,8 +1777,14 @@ function normItem(o){
   var time = /^\d{1,2}:\d{2}$/.test(t) ? (t.length < 5 ? "0" + t : t) : "23:59";
   var type = ["ddl","activity","personal"].indexOf(o.type) >= 0 ? o.type : "ddl";
   var pri  = ["high","medium","low"].indexOf(o.priority) >= 0 ? o.priority : "medium";
+  /* repeat / rEnd：连小理可以产出重复事项（打卡、周会、工作日常规） */
+  var rep = ["daily","weekday","weekly"].indexOf(o.repeat) >= 0 ? o.repeat : "none";
+  var rEnd = /^\d{4}-\d{2}-\d{2}$/.test(String(o.rEnd || "").trim())
+    ? String(o.rEnd).trim() : "";
+  if(rep === "none") rEnd = "";
   return { id: uid(), title: title, date: date, time: time, type: type,
            priority: pri, note: String(o.note || "").trim(),
+           repeat: rep, rEnd: rEnd,
            todo: !!o.todo,          // 公众号解析出的「和我有关吗」存疑标记
            done: false };
 }
@@ -1784,6 +1800,9 @@ function renderPreview(){
     + pendItems.map(function(x, i){
         return '<div class="noteitem"><span class="txt">'
           + (x.todo ? '<span class="pill p-medium">存疑</span>' : '')
+          + (x.repeat && x.repeat !== "none"
+              ? '<span class="pill p-low">' + repLabel(x.repeat)
+                + (x.rEnd ? " 至 " + x.rEnd.slice(5) : "") + '</span>' : '')
           + escHtml(x.date + " " + x.time + " · " + x.title + (x.note ? " · " + x.note : ""))
           + '</span>' + '<button class="use" data-i="' + i + '">删</button></div>';
       }).join("")
