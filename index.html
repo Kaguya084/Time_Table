@@ -363,6 +363,7 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
   <div class="card">
     <h2>全部事项 <span class="sub" id="memoCount"></span></h2>
     <div class="cats" id="memoCats"></div>
+    <div class="cats" id="memoRanges" style="margin-top:6px"></div>
     <div class="bbar hide" id="memoBatch">
       <span class="sub" id="selCount">已选 0 条</span>
       <button class="cat" id="selAll">全选</button>
@@ -380,6 +381,8 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
         <option value="low">→ 低</option>
       </select>
       <button class="add" id="bApply" style="margin:0">应用</button>
+      <button class="add" id="bDone" style="margin:0;background:var(--teal)">完成</button>
+      <button class="add" id="bDel" style="margin:0;background:var(--red)">删除</button>
       <button class="cat" id="bExit">退出批量</button>
     </div>
     <div id="memoList"></div>
@@ -629,6 +632,47 @@ var MEMO_CATS = ["ddl","activity","personal"];
 var showMemoCats = { ddl:true, activity:true, personal:true };
 var editingId = null;
 
+/* 时间范围筛选：事项多了以后，默认只看「待办」最省事 */
+var memoRange = "todo";
+var MEMO_RANGES = [
+  { k:"todo",  label:"待办" },
+  { k:"week",  label:"本周" },
+  { k:"next7", label:"未来 7 天" },
+  { k:"all",   label:"全部" },
+  { k:"done",  label:"已完成" }
+];
+function renderMemoRanges(){
+  var box = document.getElementById("memoRanges");
+  box.innerHTML = MEMO_RANGES.map(function(r){
+    return '<button class="cat tool' + (memoRange === r.k ? " on" : "") + '" data-mr="'
+         + r.k + '">' + r.label + '</button>';
+  }).join("");
+  Array.prototype.forEach.call(box.querySelectorAll(".cat"), function(b){
+    b.onclick = function(){
+      memoRange = b.getAttribute("data-mr");
+      renderMemoRanges(); renderMemo();
+    };
+  });
+}
+/* 循环任务特殊处理：它每天都在，用截止日判断，别用起始日 —— 否则打卡会凭空消失 */
+function memoRangeHit(e, tStr, wS, wE, d7){
+  var rep = e.repeat && e.repeat !== "none";
+  var ended = rep && e.rEnd && e.rEnd < tStr;     // 循环任务已过截止日 = 结束了
+  if(memoRange === "done") return !!e.done;
+  if(memoRange === "all")  return !ended;
+  if(memoRange === "todo") return !e.done && !ended;
+  if(e.done || ended) return false;
+  if(rep){
+    var until = e.rEnd || "9999-12-31";
+    if(memoRange === "week")  return until >= wS;
+    if(memoRange === "next7") return until >= tStr;
+    return true;
+  }
+  if(memoRange === "week")  return e.date <= wE;
+  if(memoRange === "next7") return e.date <= d7;
+  return true;
+}
+
 /* 批量修改：所有事项都能参与（导入的 + 原本就有的） */
 var batchMode = false, selIds = {}, lastShown = [];
 function selCount(){ var n=0; for(var k in selIds) if(selIds[k]) n++; return n; }
@@ -767,11 +811,19 @@ function renderMemo(){
     box.innerHTML='<div class="empty">还没有事项。上面加一条，或粘贴通知交给连小理解析。</div>';
     return;
   }
-  var shown=all.filter(function(e){ return showMemoCats[e.type]; });
+  var wS = ymd(dateOf(curWeek, 1));
+  var wE = ymd(new Date(dateOf(curWeek, 7).getTime()));
+  var d7 = ymd(new Date(new Date().getTime() + 6*86400000));
+  var shown=all.filter(function(e){
+    return showMemoCats[e.type] && memoRangeHit(e, tStr, wS, wE, d7);
+  });
   if(!shown.length){
-    box.innerHTML='<div class="empty">当前分类下没有事项 —— 取消上面的勾选可以显示其他分类。</div>';
+    box.innerHTML='<div class="empty">这个范围里没有事项 —— 换个时间范围，或取消上面的分类勾选。</div>';
+    document.getElementById("memoCount").textContent = "· 0 / " + all.length + " 项";
     return;
   }
+  document.getElementById("memoCount").textContent =
+    "· " + shown.length + " / " + all.length + " 项";
   var html=""; lastShown=[];
   MEMO_CATS.forEach(function(k){
     if(!showMemoCats[k]) return;
@@ -1848,6 +1900,26 @@ document.getElementById("selNone").onclick=function(){ selIds={}; renderMemo(); 
 document.getElementById("bExit").onclick=function(){
   batchMode=false; selIds={}; renderMemoCats(); renderMemo();
 };
+function selIdsList(){
+  return Object.keys(selIds).filter(function(k){ return selIds[k]; });
+}
+document.getElementById("bDone").onclick=function(){
+  var ids = selIdsList();
+  if(!ids.length){ alert("还没勾选事项。"); return; }
+  var a = loadEvts(), n = 0;
+  a.forEach(function(e){ if(selIds[e.id] && !e.done){ e.done = true; n++; } });
+  if(!n){ alert("选中的都已经完成了。"); return; }
+  saveEvts(a); selIds={}; renderMemo();
+  var b = document.getElementById("bDone");
+  b.textContent = "已完成 " + n + " 条 ✓"; setTimeout(function(){ b.textContent = "完成"; }, 1500);
+};
+document.getElementById("bDel").onclick=function(){
+  var ids = selIdsList();
+  if(!ids.length){ alert("还没勾选事项。"); return; }
+  if(!confirm("删除选中的 " + ids.length + " 条？\n删除后不可恢复（想留档可以先「复制全部数据」备份）。")) return;
+  var keep = loadEvts().filter(function(e){ return !selIds[e.id]; });
+  saveEvts(keep); selIds={}; renderMemo();
+};
 document.getElementById("bApply").onclick=function(){
   var t=document.getElementById("bType").value, p=document.getElementById("bPri").value;
   if(!t && !p){ alert("先选要改成什么「类型」或「优先级」。"); return; }
@@ -1879,7 +1951,7 @@ if(localStorage.getItem(K_EVT)===null){          // 首次打开：注入预置�
   localStorage.setItem(K_EVT, JSON.stringify(DEFAULT_EVENTS));
 }
 document.getElementById("fDate").value = todayStr();
-renderGutter(); renderCats(); renderMemoCats(); renderWeek(); renderMemo(); renderSrc(); renderNotes(); renderMark(); renderLog(); refreshSync();
+renderGutter(); renderCats(); renderMemoCats(); renderMemoRanges(); renderWeek(); renderMemo(); renderSrc(); renderNotes(); renderMark(); renderLog(); refreshSync();
 </script>
 </body>
 </html>
