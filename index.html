@@ -337,6 +337,16 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
       <input class="full" id="fTitle" placeholder="事项标题，如：高数作业提交" required>
       <input type="date" id="fDate" required>
       <input type="time" id="fTime" value="20:00">
+      <select id="fEnd" title="持续时长">
+        <option value="15">时长 15 分钟</option>
+        <option value="30" selected>时长 30 分钟</option>
+        <option value="45">时长 45 分钟</option>
+        <option value="60">时长 1 小时</option>
+        <option value="90">时长 1 小时 30 分</option>
+        <option value="120">时长 2 小时</option>
+        <option value="180">时长 3 小时</option>
+      </select>
+      <input type="date" id="fEndDate" title="跨天到的结束日期（单日不用填）">
       <label class="switch" style="grid-column:1/-1;margin:0"><input type="checkbox" id="fAllDay"> 全天（不设具体时间，日历里显示为整日横条）</label>
       <select id="fType">
         <option value="ddl">DDL</option>
@@ -348,7 +358,28 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
         <option value="medium" selected>中</option>
         <option value="low">低</option>
       </select>
-      <input class="full" id="fNote" placeholder="备注（可选）：题量 / 满分 / 地点…">
+      <input class="full" id="fLoc" placeholder="地点（可选）：教室 / 报告厅 / 场馆名">
+      <select id="fAlarm" title="第一次提醒">
+        <option value="-1">提醒 1：默认（按类型）</option>
+        <option value="0">时间发生时</option>
+        <option value="10">提前 10 分钟</option>
+        <option value="30">提前 30 分钟</option>
+        <option value="60">提前 1 小时</option>
+        <option value="90">提前 1 小时 30 分</option>
+        <option value="120">提前 2 小时</option>
+        <option value="1440">提前 1 天</option>
+        <option value="2880">提前 2 天</option>
+      </select>
+      <select id="fAlarm2" title="第二次提醒">
+        <option value="-1">提醒 2：不加</option>
+        <option value="0">时间发生时</option>
+        <option value="10">提前 10 分钟</option>
+        <option value="30">提前 30 分钟</option>
+        <option value="60">提前 1 小时</option>
+        <option value="120">提前 2 小时</option>
+        <option value="1440">提前 1 天</option>
+      </select>
+      <input class="full" id="fNote" placeholder="备注（可选）：题量 / 满分…">
       <select id="fRep">
         <option value="none" selected>不重复</option>
         <option value="daily">每天</option>
@@ -362,6 +393,8 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
   </div>
   <div class="card">
     <h2>全部事项 <span class="sub" id="memoCount"></span></h2>
+    <input type="search" id="memoQ" placeholder="搜索标题 / 备注 / 地点" style="margin-bottom:6px">
+    <div class="sub hide" id="qTip" style="margin-bottom:8px">搜索时忽略时间范围，在全部事项里找。</div>
     <div class="cats" id="memoCats"></div>
     <div class="cats" id="memoRanges" style="margin-top:6px"></div>
     <div class="bbar hide" id="memoBatch">
@@ -568,15 +601,21 @@ function renderWeek(){
       if(fullN && dispN !== fullN && seen.indexOf(fullN)<0){
         seen.push(fullN); alias.push(dispN + " → " + dispFull(fullN));
       }
-      var top=(mins(c.start)-DAY_TOP)*PX_PER_MIN, hh=(mins(c.end)-mins(c.start))*PX_PER_MIN;
+      // c.endT 是结束时刻字符串（"08:45"）；事项的 e.end 是分钟数，二者语义不同，切勿混用
+      var top=(mins(c.start)-DAY_TOP)*PX_PER_MIN, hh=(mins(c.endT)-mins(c.start))*PX_PER_MIN;
       var el=document.createElement("div");
       el.className="blk"; el.style.top=top+"px"; el.style.height=(hh-2)+"px";
       el.innerHTML='<b>'+escHtml(c.short || c.name)+'</b><span>'+escHtml(c.start+' · '+c.room)+'</span>';
       box.appendChild(el);
     });
-    // 全天事项：列顶部的整日横条（只画第一条，超出并进计数，避免撑破固定高度）
+    // 整日横条：单日全天(allday) + 跨天(endDate 区间内每天)，画在列顶部。
+    // 跨天和 ICS 导出语义保持一致：网页与时间轴都按整日横条处理。
     var adBox = document.getElementById("a"+d2);
-    var ads = evts.filter(function(e){ return e.allday && repeatHit(e, dayStr); });
+    var ads = evts.filter(function(e){
+      if(e.allday && repeatHit(e, dayStr)) return true;
+      if(e.endDate && e.date <= dayStr && dayStr <= e.endDate) return true;
+      return false;
+    });
     if(ads.length){
       nEvt += ads.length;
       var bar = document.createElement("div");
@@ -586,7 +625,9 @@ function renderWeek(){
     }
 
     evts.forEach(function(e){
-      if(!repeatHit(e, dayStr) || e.allday) return;
+      // 全天 / 跨天走顶部横条，不画普通时刻块
+      if(e.allday || (e.endDate && e.date <= dayStr && dayStr <= e.endDate)) return;
+      if(!repeatHit(e, dayStr)) return;
       nEvt++;
       var tm = e.time || "20:00";
       var top = (mins(tm)-DAY_TOP)*PX_PER_MIN;
@@ -595,6 +636,7 @@ function renderWeek(){
       var el=document.createElement("div");
       el.className="blk evt e-"+e.type;
       el.style.top=top+"px";
+      el.style.height=((+e.end>0 ? +e.end : 30)*PX_PER_MIN - 2)+"px";   // 用 end 显示时长
       el.innerHTML='<b>'+esc(e.title)+'</b><span>'+tm+'</span>';
       box.appendChild(el);
     });
@@ -631,6 +673,9 @@ function priLabel(p){ return p==="high"?"高":(p==="medium"?"中":"低"); }
 var MEMO_CATS = ["ddl","activity","personal"];
 var showMemoCats = { ddl:true, activity:true, personal:true };
 var editingId = null;
+
+/* 搜索：用于「取消/改期」这类场景 —— 先找到那条，再手动删或改，比让 AI 输出删除指令简单得多 */
+var memoQ = "";
 
 /* 时间范围筛选：事项多了以后，默认只看「待办」最省事 */
 var memoRange = "todo";
@@ -770,10 +815,14 @@ function memoRow(e, tStr){
     +     (over?'<span class="od">'+overTxt+'</span>':'')
     +     e.date
     +     (e.allday ? ' <span class="pill p-low">全天</span>' : (e.time?" "+e.time:""))
+    +     (e.endDate ? ' → '+e.endDate.slice(5)+' <span class="pill p-low">跨天</span>' : '')
+    +     (!(e.allday||e.endDate) && e.time ? '<span class="rp">'+fmtDur(+e.end>0?+e.end:30)+'</span>' : '')
     +     (e.repeat && e.repeat!=="none"
           ? ' <span class="pill p-'+e.type+'">'+repLabel(e.repeat)+' · '+repCount(e)+' 次</span>'
             + (e.rEnd?'<span class="rp">至 '+e.rEnd.slice(5)+'</span>':'')
           : '')
+    +     (e.loc ? ' <span class="rp">@'+esc(e.loc)+'</span>' : '')
+    +     (e.alarm>0 ? ' <span class="rp">提醒 提前'+fmtDur(e.alarm)+'</span>' : '')
     +     ' · <span class="edithint">点这里改</span>'
     +   '</div>'
     +   (e.note?'<div class="m" style="color:var(--ink3)">'+esc(e.note)+'</div>':'')
@@ -781,11 +830,21 @@ function memoRow(e, tStr){
     + '<button class="del" data-del="'+e.id+'">×</button></div>';
 }
 function memoEdit(e){
+  var al1 = (e.alarm  === undefined || e.alarm  === null) ? -1 : +e.alarm;
+  var al2 = (e.alarm2 === undefined || e.alarm2 === null) ? -1 : +e.alarm2;
   return '<div class="editbox">'
     + '<input id="ee-title" value="'+escAttr(e.title)+'" placeholder="标题">'
     + '<div class="erow">'
     +   '<input type="date" id="ee-date" value="'+escAttr(e.date)+'">'
     +   '<input type="time" id="ee-time" value="'+escAttr(e.time||"20:00")+'">'
+    + '</div>'
+    + '<div class="erow">'
+    +   '<select id="ee-end" title="持续时长">'
+    +     [15,30,45,60,90,120,180].map(function(v){
+            return '<option value="'+v+'"'+((+e.end||30)===v?" selected":"")+'>时长 '+fmtDur(v)+'</option>';
+          }).join("")
+    +   '</select>'
+    +   '<input type="date" id="ee-enddate" title="跨天到的结束日期（单日不用填）" value="'+escAttr(e.endDate||"")+'">'
     + '</div>'
     + '<div class="erow">'
     +   '<select id="ee-type">'+selOpts(["ddl","activity","personal"],["DDL","活动","个人"],e.type)+'</select>'
@@ -798,6 +857,21 @@ function memoEdit(e){
     + '</div>'
     + '<label class="switch" style="margin:0 0 8px"><input type="checkbox" id="ee-allday"'
     +   (e.allday?" checked":"") + '> 全天（不设具体时间）</label>'
+    + '<input id="ee-loc" value="'+escAttr(e.loc||"")+'" placeholder="地点（可选）：教室 / 报告厅 / 场馆名">'
+    + '<select id="ee-alarm" title="第一次提醒">'
+    +   '<option value="-1"'+(al1<0?" selected":"")+'>提醒 1：默认（按类型）</option>'
+    +   [0,10,30,60,90,120,1440,2880].map(function(v){
+          return '<option value="'+v+'"'+(al1===v?" selected":"")+'>'
+            + (v===0 ? "时间发生时" : "提前 " + fmtDur(v)) + '</option>';
+        }).join("")
+    + '</select>'
+    + '<select id="ee-alarm2" title="第二次提醒">'
+    +   '<option value="-1"'+(al2<0?" selected":"")+'>提醒 2：不加</option>'
+    +   [0,10,30,60,90,120,1440,2880].map(function(v){
+          return '<option value="'+v+'"'+(al2===v?" selected":"")+'>'
+            + (v===0 ? "时间发生时" : "提前 " + fmtDur(v)) + '</option>';
+        }).join("")
+    + '</select>'
     + '<input id="ee-note" value="'+escAttr(e.note||"")+'" placeholder="备注（可选）">'
     + '<div class="erow">'
     +   '<button class="add" data-save="'+e.id+'">保存</button>'
@@ -814,11 +888,20 @@ function renderMemo(){
   var wS = ymd(dateOf(curWeek, 1));
   var wE = ymd(new Date(dateOf(curWeek, 7).getTime()));
   var d7 = ymd(new Date(new Date().getTime() + 6*86400000));
+  var q = memoQ.toLowerCase();
   var shown=all.filter(function(e){
-    return showMemoCats[e.type] && memoRangeHit(e, tStr, wS, wE, d7);
+    if(!showMemoCats[e.type]) return false;
+    /* 有搜索词时跳过时间范围 —— 否则「搜到了却因为不在本周而不显示」会让人以为坏了 */
+    if(!q && !memoRangeHit(e, tStr, wS, wE, d7)) return false;
+    if(!q) return true;
+    return (e.title + " " + (e.note||"") + " " + (e.loc||"")).toLowerCase().indexOf(q) >= 0;
   });
+  document.getElementById("qTip").classList.toggle("hide", !q || memoRange === "all");
   if(!shown.length){
-    box.innerHTML='<div class="empty">这个范围里没有事项 —— 换个时间范围，或取消上面的分类勾选。</div>';
+    box.innerHTML='<div class="empty">'
+      + (q ? '没搜到「' + escHtml(memoQ) + '」—— 试试更短的词。'
+           : '这个范围里没有事项 —— 换个时间范围，或取消上面的分类勾选。')
+      + '</div>';
     document.getElementById("memoCount").textContent = "· 0 / " + all.length + " 项";
     return;
   }
@@ -879,6 +962,11 @@ function renderMemo(){
         if(a[i].id!==id) continue;
         a[i].title=t; a[i].date=d;
         a[i].time=document.getElementById("ee-time").value||"20:00";
+        var ed=document.getElementById("ee-end");
+        a[i].end=ed?(+ed.value||30):30;
+        var edd=document.getElementById("ee-enddate");
+        a[i].endDate=edd?(edd.value||""):"";
+        if(a[i].endDate && a[i].endDate < d){ alert("结束日期不能早于开始日期。"); return; }
         a[i].type=document.getElementById("ee-type").value;
         a[i].priority=document.getElementById("ee-pri").value;
         a[i].note=document.getElementById("ee-note").value.trim();
@@ -887,6 +975,11 @@ function renderMemo(){
         if(rp!=="none" && !re){ alert("选了重复，请填重复截止日。"); return; }
         a[i].repeat=rp; a[i].rEnd=(rp==="none"?"":re);
         a[i].allday=document.getElementById("ee-allday").checked;
+        var lo=document.getElementById("ee-loc");
+        a[i].loc=lo?lo.value.trim().slice(0,60):"";
+        var am=document.getElementById("ee-alarm"), am2=document.getElementById("ee-alarm2");
+        a[i].alarm  = am  ? +am.value  : -1;
+        a[i].alarm2 = am2 ? +am2.value : -1;
       }
       editingId=null; saveEvts(a); renderMemo();
     };
@@ -986,11 +1079,11 @@ function buildICS(k){
         L.push("UID:k-"+c.id+"-w"+w+"@campus");   // 稳定 UID：不随生成时间漂移
         L.push("DTSTAMP:"+icsStamp(new Date(),"00:00"));
         L.push("DTSTART:"+icsStamp(d, c.start));
-        L.push("DTEND:"+icsStamp(d, c.end));
+        L.push("DTEND:"+icsStamp(d, c.endT));   // 用课程结束时刻 endT（字符串），不是事项的分钟数 end
         L.push("SUMMARY:"+esc(c.full||c.name));
         L.push("LOCATION:"+esc(c.room));
         L.push("DESCRIPTION:第"+w+"周 · "+CALNAME);
-        L.push("BEGIN:VALARM","TRIGGER:-PT25M","ACTION:DISPLAY","DESCRIPTION:上课提醒","END:VALARM");
+        L.push("BEGIN:VALARM","TRIGGER:-PT20M","ACTION:DISPLAY","DESCRIPTION:上课提醒","END:VALARM");
         L.push("END:VEVENT");
       });
     });
@@ -1000,8 +1093,16 @@ function buildICS(k){
       var p=e.date.split("-"); var d=new Date(+p[0], +p[1]-1, +p[2]);
       var tm=e.time||"20:00";
       var desc=typeLabel(e.type)+" · 优先级"+priLabel(e.priority)+(e.note?" · "+e.note:"");
+      /* 跨天（填了 endDate）按整天处理：iOS 里显示为跨几天的整日横条，
+         比「开始有时刻、结束日期没时刻」的混合表达可靠得多。 */
+      var eD = null;
+      if(e.endDate && /^\d{4}-\d{2}-\d{2}$/.test(e.endDate)){
+        var q = e.endDate.split("-"); eD = new Date(+q[0], +q[1]-1, +q[2]);
+        if(eD < d) eD = null;                                  // 结束早于开始 → 当没填
+      }
+      var isAllDay = !!e.allday || !!eD;
       var alarms=[];
-      if(e.allday){
+      if(isAllDay){
         // 全天：DTSTART 是当天 00:00，相对偏移会落在前一天，所以用绝对时间指定闹钟
         alarms.push(["ABS", icsStamp(d,"08:00"), "当天早上 8 点"]);
         if(k === "ddl"){
@@ -1015,21 +1116,39 @@ function buildICS(k){
       } else if(k === "activity"){                            // 活动：提前 1 天 + 提前 1 小时
         alarms.push(["REL","-P1D","提前 1 天提醒"]);
         alarms.push(["REL","-PT1H","活动前 1 小时"]);
-      } else {                                                // 个人：提前 2 小时
+      } else {                        // 个人：提前 2 小时 + 时间发生时
         alarms.push(["REL","-PT2H","提前 2 小时"]);
+        alarms.push(["REL","-PT0M","时间到"]);
+      }
+      /* alarm / alarm2：手动或 AI 指定的提醒（分钟），有值就覆盖默认策略。
+         -1 = 没设置，0 = 时间发生时。两个都能设 → 最多两次提醒。 */
+      var custom = [];
+      if(e.alarm  >= 0) custom.push(+e.alarm);
+      if(e.alarm2 >= 0) custom.push(+e.alarm2);
+      if(custom.length){
+        alarms = custom.map(function(mn){
+          var lb = mn > 0 ? "提前 " + fmtDur(mn) : "时间到";
+          if(isAllDay){                                        // 全天从 00:00 起算
+            var at = new Date(d.getTime() - mn*60000);
+            return ["ABS", icsStamp(at, p2(at.getHours())+":"+p2(at.getMinutes())), lb];
+          }
+          return ["REL", "-PT"+mn+"M", lb];
+        });
       }
       L.push("BEGIN:VEVENT");
       L.push("UID:k-evt-"+e.id+"@campus");
       L.push("DTSTAMP:"+icsStamp(new Date(),"00:00"));
-      if(e.allday){
-        var nx = new Date(d.getTime()); nx.setDate(nx.getDate()+1);
+      if(isAllDay){
+        var last = eD || d;
+        var nx = new Date(last.getTime()); nx.setDate(nx.getDate()+1);
         L.push("DTSTART;VALUE=DATE:"+icsDate(d));             // 全天：只给日期，不给时刻
         L.push("DTEND;VALUE=DATE:"+icsDate(nx));
       } else {
         L.push("DTSTART:"+icsStamp(d, tm));
-        L.push("DTEND:"+icsStamp(d, addMins(tm,1)));
+        L.push("DTEND:"+icsStamp(d, addMins(tm, +e.end > 0 ? +e.end : 30)));
       }
       L.push("SUMMARY:"+esc(e.title));
+      if(e.loc) L.push("LOCATION:"+esc(e.loc));
       L.push("DESCRIPTION:"+esc(desc));
       var rr = repRule(e);
       if(rr) L.push("RRULE:"+rr);                  // 打卡类：一条事件带重复规则，iOS 每个实例都会提醒
@@ -1111,13 +1230,20 @@ document.getElementById("fAdd").onsubmit=function(e){
   var rEnd=document.getElementById("fREnd").value;
   if(rep!=="none" && !rEnd){ alert("选了重复，请填重复截止日。"); return; }
   if(rep!=="none" && rEnd < date){ alert("重复截止日不能早于开始日期。"); return; }
+  var endDate=document.getElementById("fEndDate").value||"";
+  if(endDate && endDate < date){ alert("结束日期不能早于开始日期。"); return; }
   var a=loadEvts();
     a.push({ id:uid(), title:title, date:date,
     time:document.getElementById("fTime").value||"20:00",
+    end:+(document.getElementById("fEnd").value||30),
+    endDate:endDate,
     allday:document.getElementById("fAllDay").checked,
     type:document.getElementById("fType").value,
     priority:document.getElementById("fPri").value,
     note:document.getElementById("fNote").value.trim(),
+    loc:document.getElementById("fLoc").value.trim().slice(0,60),
+    alarm:+document.getElementById("fAlarm").value,
+    alarm2:+document.getElementById("fAlarm2").value,
     repeat:rep, rEnd:(rep==="none"?"":rEnd),
     done:false });
   saveEvts(a); renderMemo();
@@ -1253,17 +1379,46 @@ var COURSE_PROMPT =
 + "   简称是我每天在手机课表上看到的名字，也是日历格子里唯一放得下的形式，很重要 —— 不要跳过这一步。\n";
 
 /* 兼容对象与数组两种顶层结构 */
-function extractJSONAny(t){
-  t = String(t).replace(/```(?:json)?/g, "").trim();
-  var i1 = t.indexOf("["), i2 = t.indexOf("{");
-  var start, close;
-  if(i2 >= 0 && (i1 < 0 || i2 < i1)){ start = i2; close = "}"; }
-  else if(i1 >= 0){ start = i1; close = "]"; }
-  else return null;
-  var end = t.lastIndexOf(close);
-  if(end <= start) return null;
-  try { return JSON.parse(t.slice(start, end + 1)); } catch(e){ return null; }
+function tryJSON(s){
+  try { return JSON.parse(s); } catch(e){ return null; }
 }
+/* 从 i 处的开括号开始做配平，返回匹配的闭括号下标（找不到返回 -1）。
+   跳过字符串字面量里的括号 —— 标题含「讲座[第2场]」这种不能被算进去。 */
+function matchBracket(s, i, open, close){
+  var d = 0, inStr = false;
+  for(var k = i; k < s.length; k++){
+    var c = s[k];
+    if(inStr){
+      if(c === "\\"){ k++; continue; }                  // 转义字符跳过
+      if(c === '"') inStr = false;
+      continue;
+    }
+    if(c === '"'){ inStr = true; continue; }
+    if(c === open) d++;
+    else if(c === close){ d--; if(d === 0) return k; }
+  }
+  return -1;
+}
+/* 从 AI 的整段回复里抠 JSON（数组或对象都行）—— 课表导入用。
+   不能再用 lastIndexOf("]")：AI 常在 JSON 之后再提问，提问里的 [ ] 会截错位置。 */
+function extractJSONAny(t){
+  var raw = String(t);
+  var fence = raw.match(/```(?:json)?\s*([\s\S]*?)```/);   // ①优先取代码块
+  if(fence){ var fv = tryJSON(fence[1].trim()); if(fv) return fv; }
+  var s = raw.replace(/```(?:json)?/g, "");
+  var cands = [];
+  var i1 = s.indexOf("["), i2 = s.indexOf("{");
+  if(i1 >= 0) cands.push([i1, "[", "]"]);
+  if(i2 >= 0) cands.push([i2, "{", "}"]);
+  cands.sort(function(a, b){ return a[0] - b[0]; });      // 谁在前面先试谁
+  for(var n = 0; n < cands.length; n++){
+    var j = matchBracket(s, cands[n][0], cands[n][1], cands[n][2]);
+    if(j > 0){ var v = tryJSON(s.slice(cands[n][0], j + 1)); if(v) return v; }
+  }
+  return null;
+}
+/* 注意：课程的 endT 是「结束时刻」字符串（如 "08:45"），与事项的 end（持续分钟数）
+   同名不同义、作用域隔离。AI 输出课表时仍用 end 字段（时刻），这里读 o.end 后存为 endT。 */
 function normCourse(o, i){
   if(!o || typeof o !== "object") return null;
   var name = String(o.name || o.title || "").trim();
@@ -1277,7 +1432,7 @@ function normCourse(o, i){
   var w = String(o.w || "").trim();
   if(!/^[\d,\-]+$/.test(w)) return null;
   return { id:"c"+("0"+(i+1)).slice(-2), name:name, short:String(o.short||"").trim(),
-           full:String(o.full||"").trim(), day:day, start:st, end:en,
+           full:String(o.full||"").trim(), day:day, start:st, endT:en,
            room:String(o.room||"").trim(), w:w, todo:!!o.todo };
 }
 var pendCourses = null, pendTerm = null;
@@ -1292,7 +1447,7 @@ function renderCoursePreview(){
     + '</div>'
     + pendCourses.map(function(c, i){
         return '<div class="noteitem"><span class="txt">周' + "一二三四五六日".charAt(c.day-1)
-          + ' ' + c.start + '-' + c.end + ' · ' + escHtml(c.name)
+          + ' ' + c.start + '-' + c.endT + ' · ' + escHtml(c.name)
           + (c.room ? ' · ' + escHtml(c.room) : '') + ' · 第' + c.w + '周'
           + (c.todo ? ' ⚠待确认' : '') + '</span>'
           + '<button class="use" data-ci="' + i + '">删</button></div>';
@@ -1349,6 +1504,15 @@ document.getElementById("cImport").onclick = function(){
 
 /* ============ 导入 ics 文件（同学之间共享日程） ============ */
 function p2(n){ return (n<10?"0":"")+n; }
+/* 分钟数 → 人读的时长：90 → "1 小时 30 分" */
+function fmtDur(m){
+  m = Math.round(+m || 0);
+  if(m <= 0) return "0 分";
+  if(m % 1440 === 0) return (m/1440) + " 天";
+  if(m < 60) return m + " 分钟";
+  if(m % 60 === 0) return (m/60) + " 小时";
+  return Math.floor(m/60) + " 小时 " + (m%60) + " 分";
+}
 function unesc(s){ return String(s).replace(/\\n/gi,"\n").replace(/\\,/g,",")
   .replace(/\\;/g,";").replace(/\\\\/g,"\\"); }
 /* RFC5545 解折行 + 取 VEVENT */
@@ -1422,14 +1586,14 @@ function eventsToCourses(evts){
     var wk = weekOf(st.date);
     if(wk < 1) return;
     var key = name+"|"+day+"|"+st.time+"|"+(en?en.time:st.time)+"|"+room;
-    if(!map[key]){ map[key] = { name:name, day:day, start:st.time,
-      end:(en?en.time:st.time), room:room, ws:[] }; order.push(key); }
+    if(!map[key]){     map[key] = { name:name, day:day, start:st.time,
+      endT:(en?en.time:st.time), room:room, ws:[] }; order.push(key); }   // 课程时刻，区别于事项分钟数
     map[key].ws.push(wk);
   });
   return order.map(function(k,i){
     var c = map[k];
     return { id:"c"+p2(i+1), name:c.name, short:"", full:"", day:c.day,
-             start:c.start, end:c.end, room:c.room, w:compressWeeks(c.ws) };
+             start:c.start, endT:c.endT, room:c.room, w:compressWeeks(c.ws) };
   });
 }
 function eventsToItems(evts){
@@ -1451,6 +1615,7 @@ function eventsToItems(evts){
     return { id:uid(), title:title, date:st.date, time:st.time||"20:00", allday:!!st.allday,
              type:"activity", priority:"medium",
              note:e.DESCRIPTION ? unesc(e.DESCRIPTION.v) : "",
+             loc:e.LOCATION ? unesc(e.LOCATION.v).slice(0,60) : "", alarm:0,
              repeat:rep, rEnd:rEnd, done:false };
   }).filter(Boolean);
 }
@@ -1643,10 +1808,46 @@ function buildPrompt(raw){
     + "· 哪些关键信息在图片里、你读不到\n"
     + "· 哪些条目你判断「可能与我无关」但拿不准\n"
     + "· 有没有你本想输出但觉得证据不足而放弃的条目\n"
-    + "先给 JSON，再提问题 —— 不要因为要问我就不输出 JSON，也不要自己憋着。\n";
+    + "· **默认提醒时机对哪条明显不合适？** 逐条说：这条建议提前多久、为什么。\n"
+    + "  默认：DDL 提前 1~2 天 + 截止前 4 小时；活动提前 1 天 + 1 小时；\n"
+    + "  个人提前 2 小时 + 时间发生时。\n"
+    + "  例如「考场在另一个校区，路上 40 分钟 → 建议提前 90 分钟」。\n"
+    + "  给建议就行，不用直接写进 alarm 字段 —— 我看了再决定要不要设。\n"
+    + "先给 JSON，再提问题 —— 不要因为要问我就不输出 JSON，也不要自己憋着。\n"
+    + "**提问区里不要用半角方括号 [ ]**（不要用「- [ ]」这种待办符号，改用「-」或「·」开头）：\n"
+    + "我会自动截取你回复里的 JSON 数组，提问里的方括号会让我截错位置、整批解析失败。\n";
   var head = "请把下面的原文解析为结构化事项，只输出 JSON 数组，不要任何解释。\n"
-    + "字段：title / date(YYYY-MM-DD) / time(HH:MM) / type / priority(high|medium|low) / note"
-    + " / repeat / rEnd\n"
+    + "字段：title / date(YYYY-MM-DD) / time(HH:MM) / end / endDate / type"
+    + " / priority(high|medium|low) / note"
+    + " / repeat / rEnd / allday / loc / alarm / alarm2 / todo\n"
+    + "\nend（持续多少分钟，可选，默认 30）：\n"
+    + "- 填整数。原文没写时长 → 留空，我这边按 30 分钟算，不要瞎猜。\n"
+    + "- 讲座 / 班会 / 会议常见 60~120；考试常见 120；打卡、签到、交材料 → 15 就够。\n"
+    + "- 它只影响日历里那根条有多长，不影响提醒，所以宁可短一点也别乱填 180。\n"
+    + "\nendDate（跨到哪一天，可选）：\n"
+    + "- 只在**一件事横跨好几天**时才填：军训、运动会、小学期、多日集训、长假。\n"
+    + "- 单日的事不要填，留空。填了会按整日横条处理（跨天在日历里没有具体时刻）。\n"
+    + "- 例：「10 月 24 日到 26 日军训」→ date:\"2026-10-24\"、endDate:\"2026-10-26\"。\n"
+    + "\nalarm / alarm2（提醒提前多少分钟，可选）：\n"
+    + "- 填整数；**留空或 null 就用默认策略**，不要为了填满字段而设。\n"
+    + "- 0 表示「时间发生时」提醒。alarm 是第一次，alarm2 是第二次（不需要就留空）。\n"
+    + "- 默认策略：DDL 提前 1~2 天 + 截止前 4 小时；活动提前 1 天 + 1 小时；\n"
+    + "  个人提前 2 小时 + 时间发生时。\n"
+    + "- 只在默认明显不合适时才设，例如：\n"
+    + "  · 要提前出发去外校区 / 考场 → 60~90\n"
+    + "  · 打卡这类只要临门一脚提醒 → 10\n"
+    + "  · 需要提前好几天准备的（材料、报名）→ 1440 以上\n"
+    + "  设了 alarm 就**只用这一个**提醒，会覆盖默认策略 —— 所以只在有把握时设，没把握就留空。\n"
+    + "\nloc（地点，可选）：\n"
+    + "- 原文提到教室 / 报告厅 / 场馆 / 会议室就填地点名；没有就填 \"\"。\n"
+    + "- 只写地点本身，不要塞链接、导航说明或大段地址。\n"
+    + "\nallday（全天）：\n"
+    + "- true 表示这件事占一整天、没有具体时刻（日历里显示为整日横条）。\n"
+    + "- 只有明确是整日性质的才设 true：运动会、全天讲座 / 开放日、放假、纪念日、\n"
+    + "  考试日、体检日、报到日这类。原文给了具体时刻 → false。\n"
+    + "- **DDL 一律 false**：即使是「当天交」也不设全天 —— 它需要按时刻提醒（截止前 4 小时），\n"
+    + "  设成全天就没有时刻，提醒算不出来。\n"
+    + "- 只给了日期、没给时刻、也看不出是不是整日 → false，time 填 \"23:59\"。\n"
     + "\nrepeat（重复）与 rEnd（重复截止日）：\n"
     + "- repeat 只有四个值：不重复 \"none\"；每天 \"daily\"；工作日（周一至周五）\"weekday\"；\n"
     + "  每周同一天 \"weekly\"。原文是别的周期（每月、每两周、隔天）→ 一律按 \"none\" 处理，没有别的选项。\n"
@@ -1656,12 +1857,28 @@ function buildPrompt(raw){
     + "- \"ddl\"：有截止时间、要交出东西的（作业、报告、报名、缴费、材料提交）\n"
     + "- \"activity\"：要到场参加的（讲座、班会、考试、集会、体检、志愿活动）\n"
     + "- \"personal\"：只和自己有关的私人安排（取快递、给家里打电话、预约、买东西）\n"
+    + "\npriority 怎么定（不要一律填 medium）：\n"
+    + "- high：错过就没法补救或代价大 —— 有成绩 / 学分 / 钱在里面（作业、报名缴费、\n"
+    + "  材料提交、考试、不可补交的截止）；或明确写了「必须参加」「不得缺席」。\n"
+    + "- low：去不去都行、纯备忘 —— 自愿讲座、宣传类活动、取快递、买东西、可选打卡。\n"
+    + "- medium：介于两者之间 —— 要参加但缺席能补救（普通班会、例会、可请假的集合）。\n"
+    + "  拿不准就 medium，但**不要整批都是 medium**：一屏里至少要有高低的区分。\n"
+    + "\ntodo（存疑标记，可选）：\n"
+    + "- 你判断这件事**可能和我无关**（面向别的年级 / 别的学院 / 需选拔 / 要特定身份），\n"
+    + "  但又不确定的 → 仍然输出，加 \"todo\": true，note 写明为什么存疑。\n"
+    + "- 不要自行丢弃：留着让我自己删，比让你替我决定要不要更靠谱。\n"
     + "\n通用规则：\n"
     + "1. 今天是 " + ymd(new Date()) + "，本学期第 " + w + " 周；第 1 周周一 = " + TERM.firstMonday
     + "。“第八周”“下周三”等请据此换算成具体日期。\n"
-    + "2. **每个日期都要能追溯到原文**：note 里用「依据：」附上你据以判断的那句原文（简短引用即可）。\n"
-    + "   信息不足 → 该字段填 null，note 写“待确认”。\n"
-    + "   **禁止把你推断出来的日期当成原文写了的日期** —— 推断不是事实，写进 note 说明即可，不要填进 date。\n"
+    + "2. **关键字段都要能追溯到原文**：date / loc / alarm / repeat / endDate 这几个，\n"
+    + "   只要填了值，note 里就用「依据：」附上你据以判断的那句原文（简短引用即可）。\n"
+    + "   信息不足 → 该字段留空或 null，note 写“待确认”。\n"
+    + "   **禁止把推断当成原文写了** —— 推断不是事实，写进 note 说明即可，不要填进字段：\n"
+    + "   · date：见上面，最常出错\n"
+    + "   · loc：地点必须原文写了才填，不要从「教学楼」「校内」这类泛称里编一个出来\n"
+    + "   · repeat：必须原文有「每天」「每周X」「每个工作日」这类周期表述才设，\n"
+    + "     不要因为某活动恰好在周二就当成每周二\n"
+    + "   · alarm：你主动给的提醒分钟数，要在 note 或提问里说清为什么（比如「路上 40 分钟」）\n"
     + "3. 没有明确时间的填 time:\"23:59\"。上课 / 调课 / 停课信息不要输出 —— 课表由教务系统单独维护。\n"
     + "4. **判定为重复要保守**：只有原文明确写了「每天」「每个工作日」「每周X」这类周期表述，\n"
     + "   才设 repeat；单次活动一律 \"none\"。\n"
@@ -1760,12 +1977,17 @@ document.getElementById("nCopy").onclick = function(){
 };
 /* 连小理回传 JSON → 批量导入（带容错 + 人眼确认） */
 var pendItems = [], pendSkipped = [];
+/* 事项导入专用：只认数组。理由同上，提问区里的 [ ] 不能影响截取。 */
 function extractJSON(t){
-  t = String(t).replace(/```(?:json)?/g, "").trim();
-  var i = t.indexOf("["), j = t.lastIndexOf("]");
-  if(i < 0 || j <= i) return null;
-  try { var v = JSON.parse(t.slice(i, j + 1)); return Array.isArray(v) ? v : null; }
-  catch(e){ return null; }
+  var raw = String(t);
+  var fence = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if(fence){ var fv = tryJSON(fence[1].trim()); if(fv && Array.isArray(fv)) return fv; }
+  var s = raw.replace(/```(?:json)?/g, "");
+  for(var i = s.indexOf("["); i >= 0; i = s.indexOf("[", i + 1)){
+    var j = matchBracket(s, i, "[", "]");
+    if(j > 0){ var v = tryJSON(s.slice(i, j + 1)); if(v && Array.isArray(v)) return v; }
+  }
+  return null;
 }
 function normItem(o){
   if(!o || typeof o !== "object") return null;
@@ -1782,9 +2004,29 @@ function normItem(o){
   var rEnd = /^\d{4}-\d{2}-\d{2}$/.test(String(o.rEnd || "").trim())
     ? String(o.rEnd).trim() : "";
   if(rep === "none") rEnd = "";
-  return { id: uid(), title: title, date: date, time: time, type: type,
+  /* allday：DDL 强制不设全天 —— 全天没有时刻，按时刻的提醒算不出来 */
+  var allday = type !== "ddl"
+    && (o.allday === true || o.allday === "true" || o.allday === 1);
+  var loc = String(o.loc || "").trim().slice(0, 60);   // 地点：只存地名，别塞长地址
+  /* alarm / alarm2：提醒提前分钟数。-1 = 没设置（走默认）；0 = 时间发生时。 */
+  function toAlarm(v){
+    if(v === "" || v === null || v === undefined) return -1;
+    var n = Math.round(+v);
+    if(isNaN(n)) return -1;
+    return Math.min(Math.max(n, 0), 43200);
+  }
+  var alarm = toAlarm(o.alarm), alarm2 = toAlarm(o.alarm2);
+  /* end（持续分钟数，默认 30）与 endDate（跨天结束日期，跨天才填） */
+  var en = Math.round(+o.end);
+  var end = (isNaN(en) || en <= 0) ? 30 : Math.min(en, 1440);
+  var endDate = /^\d{4}-\d{2}-\d{2}$/.test(String(o.endDate || "").trim())
+    ? String(o.endDate).trim() : "";
+  if(endDate && endDate < date) endDate = "";      // AI 填反了就当没有
+  return { id: uid(), title: title, date: date, time: time,
+           end: end, endDate: endDate, type: type,
            priority: pri, note: String(o.note || "").trim(),
-           repeat: rep, rEnd: rEnd,
+           repeat: rep, rEnd: rEnd, allday: allday, loc: loc,
+           alarm: alarm, alarm2: alarm2,
            todo: !!o.todo,          // 公众号解析出的「和我有关吗」存疑标记
            done: false };
 }
@@ -1800,10 +2042,17 @@ function renderPreview(){
     + pendItems.map(function(x, i){
         return '<div class="noteitem"><span class="txt">'
           + (x.todo ? '<span class="pill p-medium">存疑</span>' : '')
+          + (x.allday ? '<span class="pill p-low">全天</span>' : '')
+          + (x.endDate ? '<span class="pill p-low">跨天至 '+x.endDate.slice(5)+'</span>' : '')
+          + (x.alarm > 0 ? '<span class="pill p-low">提前'+fmtDur(x.alarm)+'提醒</span>' : '')
           + (x.repeat && x.repeat !== "none"
               ? '<span class="pill p-low">' + repLabel(x.repeat)
                 + (x.rEnd ? " 至 " + x.rEnd.slice(5) : "") + '</span>' : '')
-          + escHtml(x.date + " " + x.time + " · " + x.title + (x.note ? " · " + x.note : ""))
+          + escHtml(x.date + " " + x.time
+            + (!(x.allday||x.endDate) && x.time
+                ? "-" + addMins(x.time, +x.end > 0 ? +x.end : 30) : "")
+            + " · " + x.title
+            + (x.loc ? " @" + x.loc : "") + (x.note ? " · " + x.note : ""))
           + '</span>' + '<button class="use" data-i="' + i + '">删</button></div>';
       }).join("")
     + (pendSkipped.length
@@ -1970,6 +2219,9 @@ if(localStorage.getItem(K_EVT)===null){          // 首次打开：注入预置�
   localStorage.setItem(K_EVT, JSON.stringify(DEFAULT_EVENTS));
 }
 document.getElementById("fDate").value = todayStr();
+document.getElementById("memoQ").oninput = function(){
+  memoQ = this.value.trim(); renderMemo();
+};
 renderGutter(); renderCats(); renderMemoCats(); renderMemoRanges(); renderWeek(); renderMemo(); renderSrc(); renderNotes(); renderMark(); renderLog(); refreshSync();
 </script>
 </body>
