@@ -301,29 +301,29 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
   <div class="card">
     <h2>粘贴通知 <span class="sub">→ 交给连小理解析</span></h2>
     <div class="cats" id="srcSel">
-      <button class="cat tool" data-src="chat">班级群通知</button>
-      <button class="cat tool" data-src="wxmp">公众号推送</button>
+      <button class="cat tool" data-src="chat" title="来源选「班级群通知」：解析时会带上群聊语境（谁发的、同班）">班级群通知</button>
+      <button class="cat tool" data-src="wxmp" title="来源选「公众号推送」：解析时会带上公众号语境（官方、面向全校）">公众号推送</button>
     </div>
     <div class="sub hide" id="srcTip" style="margin-bottom:8px;line-height:1.7"></div>
     <textarea id="nRaw"></textarea>
     <div class="lgrow" style="margin-top:10px">
-      <button class="add" type="button" id="nGen" style="margin:0">生成解析请求</button>
-      <button class="add" type="button" id="nSave" style="margin:0;background:var(--ink3)">暂存原文</button>
+      <button class="add" type="button" id="nGen" style="margin:0" title="把通知原文 + 今天第几周 / 第一周周一打包成请求文本，复制后发给连小理">生成解析请求</button>
+      <button class="add" type="button" id="nSave" style="margin:0;background:var(--ink3)" title="把通知原文存在本机，关掉网页也不丢，下次接着处理">暂存原文</button>
     </div>
     <div id="nOutWrap" class="hide" style="margin-top:10px">
       <div class="sub" style="margin-bottom:6px">复制下面整段，发给连小理；它回 JSON，你再粘回来</div>
       <textarea id="nOut" readonly style="min-height:150px;font-size:12px"></textarea>
-      <button class="add" type="button" id="nCopy" style="margin-top:8px">复制解析请求</button>
+      <button class="add" type="button" id="nCopy" style="margin-top:8px" title="把生成的解析请求文本复制到剪贴板">复制解析请求</button>
     </div>
     <div id="nBackWrap">
       <div class="sub" style="margin:12px 0 6px">把连小理返回的 JSON 粘回来（带解释文字或 ``` 围栏也能识别）</div>
       <textarea id="nBack" placeholder='[{"title":"第三章作业","date":"2026-10-28","time":"23:55","type":"ddl","priority":"high","note":"共 5 题"}]'
         style="min-height:96px;font-size:12px"></textarea>
-      <button class="add" type="button" id="nImport" style="margin-top:8px">解析并预览</button>
+      <button class="add" type="button" id="nImport" style="margin-top:8px" title="把连小理返回的 JSON 解析出来，先出预览供你逐条核对">解析并预览</button>
       <div id="nPreview" class="hide"></div>
     </div>
     <div style="border-top:1px solid var(--line);margin-top:12px;padding-top:12px">
-      <button class="add" type="button" id="nMark" style="margin:0">手动触发 · 标记此刻已汇总</button>
+      <button class="add" type="button" id="nMark" style="margin:0" title="把「现在」标记为最后一次已汇总时刻，之后连小理不会再把这之前的内容当新通知推送">手动触发 · 标记此刻已汇总</button>
       <div class="sub" id="markTxt" style="margin-top:8px;line-height:1.7"></div>
     </div>
   </div>
@@ -332,7 +332,8 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
     <div id="nList"></div>
   </div>
   <div class="card">
-    <h2>添加事项</h2>
+    <h2>添加事项 <span class="sub">手动录入一条日程</span></h2>
+    <div class="sub" style="margin-bottom:9px;line-height:1.7">填好下面各项，点「添加 / 批量生成」把它放进备忘录（<strong>还不会进日历</strong>——要到顶部「导出 ics」才会同步到 iPhone）。标题写多行可一次生成多条。</div>
     <form id="fAdd">
       <input class="full" id="fTitle" placeholder="事项标题，如：高数作业提交" required>
       <input type="date" id="fDate" required>
@@ -387,8 +388,10 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
         <option value="weekly">每周同一天</option>
       </select>
       <input type="date" id="fREnd" title="重复截止日">
-      <button class="add" type="submit">添加 / 批量生成</button>
+      <button class="add" type="submit" title="把填好的事项加入备忘录；标题写多行可一次生成多条">添加 / 批量生成</button>
       <div class="sub full" id="fRepHint" style="grid-column:1/-1;margin:-2px 0 0"></div>
+      <div class="sub full" style="grid-column:1/-1;margin-top:4px">空着的「年 / 月 / 日」是<strong>跨天结束日期</strong>：活动连着好几天才填（填了会按整天横条显示），单日留空；选了「重复」才需要填「重复截止日」（含当天）。</div>
+      <div class="sub full" style="grid-column:1/-1;margin-top:4px">添加后出现在下方「全部事项」；改完去顶部「导出 ics」才会同步到 iPhone 日历。</div>
     </form>
   </div>
   <div class="card">
@@ -399,8 +402,8 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
     <div class="cats" id="memoRanges" style="margin-top:6px"></div>
     <div class="bbar hide" id="memoBatch">
       <span class="sub" id="selCount">已选 0 条</span>
-      <button class="cat" id="selAll">全选</button>
-      <button class="cat" id="selNone">清空</button>
+      <button class="cat" id="selAll" title="批量模式下，勾选全部事项">全选</button>
+      <button class="cat" id="selNone" title="批量模式下，清空当前选择">清空</button>
       <select id="bType">
         <option value="">类型：不改</option>
         <option value="ddl">→ DDL</option>
@@ -413,10 +416,10 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
         <option value="medium">→ 中</option>
         <option value="low">→ 低</option>
       </select>
-      <button class="add" id="bApply" style="margin:0">应用</button>
-      <button class="add" id="bDone" style="margin:0;background:var(--teal)">完成</button>
-      <button class="add" id="bDel" style="margin:0;background:var(--red)">删除</button>
-      <button class="cat" id="bExit">退出批量</button>
+      <button class="add" id="bApply" style="margin:0" title="把上面选的类型 / 优先级改写到选中的事项上">应用</button>
+      <button class="add" id="bDone" style="margin:0;background:var(--teal)" title="把选中的事项标记为已完成">完成</button>
+      <button class="add" id="bDel" style="margin:0;background:var(--red)" title="删除选中的事项（不可恢复）">删除</button>
+      <button class="cat" id="bExit" title="退出批量修改模式">退出批量</button>
     </div>
     <div id="memoList"></div>
   </div>
@@ -441,6 +444,17 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
       <button class="add" type="button" id="bkClear" style="margin:0;background:var(--red)">清空本机全部数据</button>
       <div class="sub" style="margin-top:8px">会清掉课表、事项、基线记录、汇总标记 —— <strong>建议先复制备份</strong>。清完回到空状态，可重新导入。</div>
     </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h2>老数据修复</h2>
+    <div class="sub" style="margin-bottom:9px;line-height:1.7">
+      用旧版网页存过课表 / 事项，升级后可能因字段缺失导致「日程表」打不开
+      （典型：旧版课程用 <code>end</code> 存结束时刻，新版改成了 <code>endT</code>，缺失 <code>endT</code> 会让周视图 <code>mins(undefined)</code> 崩溃）。<br>
+      点下面按钮：扫描本机课表与事项，给缺失字段补上安全默认值，并<strong>写回本机</strong>（不影响现有内容）。
+    </div>
+    <button class="add" type="button" id="fixOld" style="margin:0">为老数据补空白默认值</button>
+    <div class="sub" id="fixOldTxt" style="margin-top:8px"></div>
   </div>
 </section>
 
@@ -476,12 +490,19 @@ var COURSES = [];
 /* 预置事项为空（首次打开时注入，可自行增删改） */
 var DEFAULT_EVENTS = [];
 
-/* 课表默认内嵌；若用户导入过（存在 localStorage）则以导入的为准 */
+/* 课表默认内嵌；若用户导入过（存在 localStorage）则以导入的为准。
+   兼容旧数据：2026-10-25 前课程用 end 字段存结束时刻，之后改为 endT（与事项的 end=分钟数区分），
+   这里加载时自动迁移，避免旧课表让周视图 mins() 拿到 undefined 而崩溃。 */
 var K_COURSES = "cs_courses_v1";
 (function(){
   try{
     var v = JSON.parse(localStorage.getItem(K_COURSES)||"null");
-    if(Array.isArray(v) && v.length) COURSES = v;
+    if(Array.isArray(v) && v.length){
+      v.forEach(function(c){   // 旧字段 end → endT（结束时刻字符串），兼容改名前的课表
+        if(c && typeof c==="object" && c.end !== undefined && c.endT === undefined) c.endT = c.end;
+      });
+      COURSES = v;
+    }
   }catch(e){}
 })();
 
@@ -1343,6 +1364,71 @@ if(_logCopy) _logCopy.onclick = function(){
   var t = "日期\t漏事件数\t录入耗时(分)\t提醒是否生效\n"
         + a.map(function(x){ return x.d + "\t" + x.miss + "\t" + (x.min||0) + "\t" + (x.on ? "是" : "否"); }).join("\n");
   copyText(t, document.getElementById("logCopy"));
+};
+
+/* 老数据修复：扫描课表 / 事项，给缺失字段补默认值并写回 localStorage。
+   主要解决旧版课程的 end→endT 改名：缺 endT 会让周视图 mins(undefined) 崩溃。
+   与文件顶部的静默 IIFE 迁移互补 —— 此处是「显式、可点、写回」的持久修复。 */
+var _fixOld = document.getElementById("fixOld");
+if(_fixOld) _fixOld.onclick = function(){
+  var fixC = 0, fixE = 0, nC = 0, nE = 0;
+  /* —— 课表（K_COURSES）：旧 end（结束时刻字符串）→ endT 是必修项 —— */
+  try{
+    var cv = JSON.parse(localStorage.getItem(K_COURSES) || "null");
+    if(Array.isArray(cv)){
+      cv.forEach(function(c){
+        if(!c || typeof c !== "object") return;
+        nC++;
+        if(c.end !== undefined && c.endT === undefined){ c.endT = c.end; delete c.end; fixC++; } // 旧字段改名
+        if(typeof c.name !== "string" || !c.name.trim()){ c.name = (typeof c.title==="string" && c.title.trim()) ? c.title : "未命名课程"; fixC++; }
+        if(typeof c.short !== "string"){ c.short = ""; fixC++; }
+        if(typeof c.full  !== "string"){ c.full  = c.name; fixC++; }
+        if(typeof c.start !== "string" || !/^\d{1,2}:\d{2}$/.test(c.start)){ c.start = "08:00"; fixC++; }
+        if(typeof c.endT !== "string" || !/^\d{1,2}:\d{2}$/.test(c.endT)){ c.endT = "09:00"; fixC++; }
+        if(!(+c.day >= 1 && +c.day <= 7)){ c.day = 1; fixC++; }
+        if(typeof c.w !== "string" || !c.w.trim()){ c.w = "1-18"; fixC++; }
+        if(typeof c.room !== "string"){ c.room = ""; fixC++; }
+        if(typeof c.todo !== "boolean"){ c.todo = false; fixC++; }
+      });
+      if(fixC) localStorage.setItem(K_COURSES, JSON.stringify(cv));
+    }
+  }catch(e){}
+  /* —— 事项（K_EVT）：缺 end 只影响块高度（非致命），仍补成默认 30 分钟 —— */
+  try{
+    var ev = JSON.parse(localStorage.getItem(K_EVT) || "[]");
+    if(Array.isArray(ev)){
+      ev.forEach(function(e){
+        if(!e || typeof e !== "object") return;
+        nE++;
+        if(e.end === undefined || isNaN(+e.end) || +e.end <= 0){ e.end = 30; fixE++; }
+        if(e.alarm  === undefined){ e.alarm  = -1; fixE++; }
+        if(e.alarm2 === undefined){ e.alarm2 = -1; fixE++; }
+        if(typeof e.done !== "boolean"){ e.done = false; fixE++; }
+        if(typeof e.todo !== "boolean"){ e.todo = false; fixE++; }
+      });
+      if(fixE) localStorage.setItem(K_EVT, JSON.stringify(ev));
+    }
+  }catch(e){}
+
+  var msg;
+  if(fixC || fixE){
+    /* 重新加载到内存并刷新视图 */
+    try{
+      var v2 = JSON.parse(localStorage.getItem(K_COURSES) || "null");
+      if(Array.isArray(v2) && v2.length){
+        v2.forEach(function(c){ if(c.end !== undefined && c.endT === undefined) c.endT = c.end; }); // 再保险
+        COURSES = v2;
+      } else COURSES = [];
+      COURSES.forEach(function(c){ c.weeks = parseWeeks(c.w); });
+    }catch(e){}
+    renderWeek(); renderMemo();
+    msg = "已扫描 课表 " + nC + " 门 / 事项 " + nE + " 条，修复 " + (fixC + fixE)
+        + " 处并写回本机，日程表已刷新 ✓";
+  } else {
+    msg = "扫描完成：课表 " + nC + " 门 / 事项 " + nE + " 条，未发现需要修复的缺失字段 ✓";
+  }
+  var t = document.getElementById("fixOldTxt");
+  if(t) t.textContent = msg;
 };
 
 /* ============ 课程表导入：生成解析请求 + 回填 ============ */
