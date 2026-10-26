@@ -88,6 +88,8 @@ h1{font-size:18px;font-weight:600;margin:0 0 2px;letter-spacing:-.01em}
 
 /* 分类筛选 */
 .cats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.cats .gsep{width:1px;height:18px;background:var(--line);margin:0 4px;align-self:center}
+.cats .flabel{font-size:11px;color:var(--ink3);align-self:center;margin-right:2px}
 .cat{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line2);background:var(--bg);
   border-radius:20px;padding:5px 11px;font-size:12.5px;font-weight:600;
   color:var(--ink3);cursor:pointer;font-family:inherit}
@@ -206,6 +208,10 @@ button.add:active{opacity:.75}
 .tip b{color:#6b3f08}
 .hide{display:none}
 footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-height:1.7}
+.da-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:7px 0;font-size:12.5px}
+.da-row .da-name{font-weight:600;min-width:108px}
+.da-in{width:62px;font-size:12.5px;padding:4px 6px;border:1px solid var(--line2);border-radius:8px;
+  background:var(--bg);color:var(--ink);font-family:inherit}
 </style>
 </head>
 <body>
@@ -235,6 +241,7 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
 <section id="v-week">
   <div class="card">
     <div class="cats" id="cats"></div>
+    <div class="cats" id="wkPriRow" style="margin-top:-4px"></div>
     <div class="wkbar">
       <button class="nav" id="prevW">‹</button>
       <div class="n" id="wkLabel">第 1 周<small id="wkRange"></small></div>
@@ -267,7 +274,8 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
     <textarea id="cOut" readonly class="hide" style="min-height:160px;font-size:12px;margin-top:10px"></textarea>
     <button class="add hide" type="button" id="cCopy" style="margin-top:8px">复制请求</button>
     <div style="border-top:1px solid var(--line);margin-top:12px;padding-top:12px">
-      <div class="sub" style="margin-bottom:6px">把连小理返回的 JSON 粘回来</div>
+      <div class="sub" style="margin-bottom:6px">把连小理返回的 JSON 粘回来，或 <label for="cFile" style="color:var(--purple);font-weight:600;cursor:pointer">选择 .json 文件</label></div>
+      <input type="file" id="cFile" accept=".json,.jsom,application/json" style="margin-bottom:8px">
       <textarea id="cBack" placeholder='{"term":{"firstMonday":"2026-08-31"},"courses":[{"name":"高等数学(上)","short":"高数","day":1,"start":"08:00","end":"09:35","room":"教学楼A101","w":"1-16"}]}'
         style="min-height:96px;font-size:12px"></textarea>
       <button class="add" type="button" id="cImport" style="margin-top:8px">解析并预览</button>
@@ -316,7 +324,8 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
       <button class="add" type="button" id="nCopy" style="margin-top:8px" title="把生成的解析请求文本复制到剪贴板">复制解析请求</button>
     </div>
     <div id="nBackWrap">
-      <div class="sub" style="margin:12px 0 6px">把连小理返回的 JSON 粘回来（带解释文字或 ``` 围栏也能识别）</div>
+      <div class="sub" style="margin:12px 0 6px">把连小理返回的 JSON 粘回来，或 <label for="nFile" style="color:var(--purple);font-weight:600;cursor:pointer">选择 .json 文件</label>（带解释文字或 ``` 围栏也能识别）</div>
+      <input type="file" id="nFile" accept=".json,.jsom,application/json" style="margin-bottom:8px">
       <textarea id="nBack" placeholder='[{"title":"第三章作业","date":"2026-10-28","time":"23:55","type":"ddl","priority":"high","note":"共 5 题"}]'
         style="min-height:96px;font-size:12px"></textarea>
       <button class="add" type="button" id="nImport" style="margin-top:8px" title="把连小理返回的 JSON 解析出来，先出预览供你逐条核对">解析并预览</button>
@@ -400,6 +409,7 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
     <div class="sub hide" id="qTip" style="margin-bottom:8px">搜索时忽略时间范围，在全部事项里找。</div>
     <div class="cats" id="memoCats"></div>
     <div class="cats" id="memoRanges" style="margin-top:6px"></div>
+    <div class="cats" id="memoGroupRow" style="margin-top:6px"></div>
     <div class="bbar hide" id="memoBatch">
       <span class="sub" id="selCount">已选 0 条</span>
       <button class="cat" id="selAll" title="批量模式下，勾选全部事项">全选</button>
@@ -424,7 +434,7 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
     <div id="memoList"></div>
   </div>
   <div class="tip">分类怎么选：<b>DDL</b> = 有截止、要交东西的；<b>活动</b> = 要到场参加的；<b>个人</b> = 只跟自己有关的私事。<br>
-  分错类会进不同的 ics 文件 —— 在 iPhone 里就是<strong>不同的日历</strong>，提醒时机也不一样（DDL 提前 1–2 天，活动提前 1 天，个人提前 2 小时）。<br>
+  分错类会进不同的 ics 文件 —— 在 iPhone 里就是<strong>不同的日历</strong>，提醒时机也不一样（各自提前多久可在下面「默认提醒时间」里改）。<br>
   改完记得<strong>导出</strong> —— 顶部出现「日历待更新」就说明改动还没同步到 iPhone。</div>
 </section>
 
@@ -455,6 +465,15 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
     </div>
     <button class="add" type="button" id="fixOld" style="margin:0">为老数据补空白默认值</button>
     <div class="sub" id="fixOldTxt" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h2>默认提醒时间 <span class="sub">导出 ics 时，没单独设提醒的事项按这里</span></h2>
+    <div class="sub" style="margin-bottom:8px;line-height:1.7">每种类型最多两条默认提醒（提前多少<strong>分钟</strong>）。<strong>0 = 时间发生时</strong>，留空 = 不设这条；1440 = 1 天，60 = 1 小时。</div>
+    <div id="defAlarmBox"></div>
+    <div class="erow" style="margin-top:10px">
+      <button class="add" type="button" id="defAlarmReset" style="margin:0;background:var(--ink3)">恢复默认</button>
+    </div>
   </div>
 </section>
 
@@ -564,6 +583,64 @@ function saveEvts(a){ localStorage.setItem(K_EVT, JSON.stringify(a)); refreshSyn
 function loadSync(){
   try{ return JSON.parse(localStorage.getItem(K_SYNC)||"null"); }catch(e){ return null; }
 }
+
+/* ============ 默认提醒时间（前端可改，存本机） ============ */
+var DEF_ALARM_DEFAULT = { course:[20], ddl:[1440,240], activity:[1440,60], personal:[120,0] };
+var K_DEFALARM = "cs_defalarm_v1";
+function loadDefAlarm(){
+  var d = JSON.parse(JSON.stringify(DEF_ALARM_DEFAULT));
+  try{
+    var v = JSON.parse(localStorage.getItem(K_DEFALARM) || "null");
+    if(v && typeof v === "object"){
+      ["course","ddl","activity","personal"].forEach(function(k){
+        if(Array.isArray(v[k])){
+          var arr = v[k].map(function(x){ return (x===0||x==="0") ? 0 : (isFinite(+x) ? +x : null); })
+                         .filter(function(x){ return x !== null && x >= 0 && x <= 43200; });
+          if(arr.length) d[k] = arr;
+        }
+      });
+    }
+  }catch(e){}
+  return d;
+}
+var DEF_ALARM = loadDefAlarm();
+function saveDefAlarm(){ try{ localStorage.setItem(K_DEFALARM, JSON.stringify(DEF_ALARM)); }catch(e){} }
+/* 把默认提醒数组渲染成给 连小理 看的文字（注入解析提示词） */
+function defAlarmPrompt(){
+  function fmt(mn){ return mn===0 ? "时间发生时" : "提前 " + fmtDur(mn); }
+  function line(k, label){
+    var arr = DEF_ALARM[k] || [];
+    return "   · " + label + "：" + (arr.length ? arr.map(fmt).join(" + ") : "（无默认提醒）");
+  }
+  return line("course","课程（上课前）") + "\n" + line("ddl","DDL（截止前）") + "\n"
+       + line("activity","活动（开始前）") + "\n" + line("personal","个人（开始前）") + "\n";
+}
+var DEF_TYPES = [["course","课程（上课前）"],["ddl","DDL（截止前）"],["activity","活动（开始前）"],["personal","个人（开始前）"]];
+function renderDefAlarm(){
+  var box = document.getElementById("defAlarmBox");
+  if(!box) return;
+  box.innerHTML = DEF_TYPES.map(function(t){
+    var arr = DEF_ALARM[t[0]] || [];
+    function v(i){ return arr[i]==null ? "" : arr[i]; }
+    return '<div class="da-row"><span class="da-name">'+t[1]+'</span>'
+      + '提醒1<input class="da-in" type="number" min="0" max="43200" data-t="'+t[0]+'" data-i="0" value="'+v(0)+'">'
+      + '提醒2<input class="da-in" type="number" min="0" max="43200" data-t="'+t[0]+'" data-i="1" value="'+v(1)+'">分钟</div>';
+  }).join("");
+  Array.prototype.forEach.call(box.querySelectorAll(".da-in"), function(inp){
+    inp.onchange = function(){
+      var t = inp.getAttribute("data-t");
+      var arr = [null, null];
+      box.querySelectorAll('.da-in[data-t="'+t+'"]').forEach(function(o){
+        var or = o.value.trim();
+        arr[+o.getAttribute("data-i")] = or === "" ? null : Math.max(0, Math.min(43200, Math.round(+or)));
+      });
+      DEF_ALARM[t] = arr.filter(function(x){ return x !== null; });
+      saveDefAlarm();
+      if(!document.getElementById("expCard").classList.contains("hide")) renderExport();
+      refreshSync();
+    };
+  });
+}
 /* 每类单独记同步状态：只导了 DDL，课表仍应提示待更新 */
 function catSnapshot(k){
   if(k === "course") return DATA_VERSION + "|" + JSON.stringify(COURSES);
@@ -608,7 +685,7 @@ function renderWeek(){
   for(var m=DAY_TOP;m<=DAY_BOT;m+=60) lines+='<div class="hline" style="top:'+((m-DAY_TOP)*PX_PER_MIN)+'px"></div>';
 
   var n=0, seen=[], alias=[], nEvt=0;
-  var evts = loadEvts().filter(function(e){ return !e.done && showCats[e.type]; });
+  var evts = loadEvts().filter(function(e){ return !e.done && showCats[e.type] && showPri[(e.priority||"medium")]; });
   for(var d2=1; d2<=7; d2++){
     var box=document.getElementById("b"+d2);
     box.style.height=h+"px"; box.innerHTML=lines;
@@ -700,6 +777,10 @@ var memoQ = "";
 
 /* 时间范围筛选：事项多了以后，默认只看「待办」最省事 */
 var memoRange = "todo";
+/* 视图：分组维度（按分类 / 按优先级）+ 优先级筛选（高 / 中 / 低） */
+var memoGroup = "type";                       // "type" | "priority"
+var PRI_ORDER = ["high","medium","low"];
+var showPri = { high:true, medium:true, low:true };
 var MEMO_RANGES = [
   { k:"todo",  label:"待办" },
   { k:"week",  label:"本周" },
@@ -717,6 +798,29 @@ function renderMemoRanges(){
     b.onclick = function(){
       memoRange = b.getAttribute("data-mr");
       renderMemoRanges(); renderMemo();
+    };
+  });
+}
+/* 视图：分组维度（按分类 / 按优先级）+ 优先级筛选。与分类/时间筛选并列，纯视图层，不影响 ics 导出。 */
+function renderMemoGroup(){
+  var box = document.getElementById("memoGroupRow");
+  var gHtml = '<span class="flabel">分组</span>'
+            + '<button class="cat tool'+(memoGroup==="type"?" on":"")+'" id="gType">按分类</button>'
+            + '<button class="cat tool'+(memoGroup==="priority"?" on":"")+'" id="gPri">按优先级</button>'
+            + '<span class="gsep"></span>'
+            + '<span class="flabel">优先级</span>'
+            + PRI_ORDER.map(function(p){
+                return '<button class="cat tool'+(showPri[p]?" on":"")+'" data-pri="'+p+'">'+priLabel(p)+'</button>';
+              }).join("");
+  box.innerHTML = gHtml;
+  document.getElementById("gType").onclick = function(){ memoGroup="type"; renderMemoGroup(); renderMemo(); };
+  document.getElementById("gPri").onclick  = function(){ memoGroup="priority"; renderMemoGroup(); renderMemo(); };
+  Array.prototype.forEach.call(box.querySelectorAll("[data-pri]"), function(b){
+    b.onclick = function(){
+      var p = b.getAttribute("data-pri");
+      showPri[p] = !showPri[p];
+      b.classList.toggle("on", showPri[p]);
+      renderMemo();
     };
   });
 }
@@ -912,6 +1016,7 @@ function renderMemo(){
   var q = memoQ.toLowerCase();
   var shown=all.filter(function(e){
     if(!showMemoCats[e.type]) return false;
+    if(!showPri[e.priority || "medium"]) return false;   // 优先级筛选（缺省按中）
     /* 有搜索词时跳过时间范围 —— 否则「搜到了却因为不在本周而不显示」会让人以为坏了 */
     if(!q && !memoRangeHit(e, tStr, wS, wE, d7)) return false;
     if(!q) return true;
@@ -929,22 +1034,36 @@ function renderMemo(){
   document.getElementById("memoCount").textContent =
     "· " + shown.length + " / " + all.length + " 项";
   var html=""; lastShown=[];
-  MEMO_CATS.forEach(function(k){
-    if(!showMemoCats[k]) return;
-    var arr=shown.filter(function(e){ return e.type===k; }).sort(function(a,b){
+  function sortArr(arr){
+    return arr.sort(function(a,b){
       if(a.done!==b.done) return a.done?1:-1;      // 未完成的在前
       if(a.date!==b.date) return a.date<b.date?-1:1;
       return (a.time||"")<(b.time||"")?-1:1;        // 同日按时刻
     });
+  }
+  function emitGroup(pillCls, label, arr){
     if(!arr.length) return;
-    html += '<div class="grp"><span class="pill p-'+k+'">'+catLabel(k)+'</span>'
+    html += '<div class="grp"><span class="pill '+pillCls+'">'+label+'</span>'
           + '<span class="gn">'+arr.length+' 项</span></div>';
     arr.forEach(function(e){
       lastShown.push(e.id);
       html += memoRow(e, tStr);
       if(editingId===e.id) html += memoEdit(e);
     });
-  });
+  }
+  if(memoGroup === "priority"){
+    PRI_ORDER.forEach(function(p){
+      if(!showPri[p]) return;                       // 该优先级被筛掉就不显示分组
+      emitGroup("p-"+p, priLabel(p)+"优先级",
+        sortArr(shown.filter(function(e){ return (e.priority||"medium")===p; })));
+    });
+  } else {
+    MEMO_CATS.forEach(function(k){
+      if(!showMemoCats[k]) return;
+      emitGroup("p-"+k, catLabel(k),
+        sortArr(shown.filter(function(e){ return e.type===k; })));
+    });
+  }
   box.innerHTML=html;
   document.getElementById("memoBatch").classList.toggle("hide", !batchMode);
   document.getElementById("selCount").textContent = "已选 " + selCount() + " 条";
@@ -1054,6 +1173,23 @@ function renderCats(){
     };
   });
 }
+/* 日程表页：优先级筛选（课表无优先级，始终显示；事项按优先级开关，缺省按「中」） */
+function renderWeekPri(){
+  var box=document.getElementById("wkPriRow"), html="";
+  html += '<span class="flabel">优先级</span>'
+        + PRI_ORDER.map(function(p){
+            return '<button class="cat tool'+(showPri[p]?" on":"")+'" data-pri="'+p+'">'+priLabel(p)+'</button>';
+          }).join("");
+  box.innerHTML=html;
+  Array.prototype.forEach.call(box.querySelectorAll("[data-pri]"), function(b){
+    b.onclick=function(){
+      var p=b.getAttribute("data-pri");
+      showPri[p]=!showPri[p];
+      b.classList.toggle("on", showPri[p]);
+      renderWeek();
+    };
+  });
+}
 
 /* ============ 导出面板 ============ */
 function catCount(k){
@@ -1104,7 +1240,9 @@ function buildICS(k){
         L.push("SUMMARY:"+esc(c.full||c.name));
         L.push("LOCATION:"+esc(c.room));
         L.push("DESCRIPTION:第"+w+"周 · "+CALNAME);
-        L.push("BEGIN:VALARM","TRIGGER:-PT20M","ACTION:DISPLAY","DESCRIPTION:上课提醒","END:VALARM");
+        (DEF_ALARM.course||[]).forEach(function(mn){
+          L.push("BEGIN:VALARM","TRIGGER:-PT"+mn+"M","ACTION:DISPLAY","DESCRIPTION:上课提醒","END:VALARM");
+        });
         L.push("END:VEVENT");
       });
     });
@@ -1122,25 +1260,18 @@ function buildICS(k){
         if(eD < d) eD = null;                                  // 结束早于开始 → 当没填
       }
       var isAllDay = !!e.allday || !!eD;
+      /* 默认提醒：DEF_ALARM[k] 是按「事件时刻之前多少分钟」排的数组（0 = 时间发生时）。
+         全天事件以当天 00:00 为基准换算成绝对时刻；按时事件用相对偏移。 */
       var alarms=[];
-      if(isAllDay){
-        // 全天：DTSTART 是当天 00:00，相对偏移会落在前一天，所以用绝对时间指定闹钟
-        alarms.push(["ABS", icsStamp(d,"08:00"), "当天早上 8 点"]);
-        if(k === "ddl"){
-          var pv = new Date(d.getTime()); pv.setDate(pv.getDate()-1);
-          alarms.push(["ABS", icsStamp(pv,"20:00"), "前一天晚上 8 点"]);
+      (DEF_ALARM[k]||[]).forEach(function(mn){
+        if(isAllDay){
+          var at = new Date(d.getTime() - mn*60000);
+          alarms.push(["ABS", icsStamp(at, p2(at.getHours())+":"+p2(at.getMinutes())),
+                             mn===0 ? "当天 0 点" : "提前 " + fmtDur(mn)]);
+        } else {
+          alarms.push(["REL", "-PT"+mn+"M", mn===0 ? "时间到" : "提前 " + fmtDur(mn)]);
         }
-      } else if(k === "ddl"){                                 // 截止：提前 1~2 天 + 截止前 4 小时
-        var t = (e.priority==="high") ? "-P2D" : "-P1D";
-        alarms.push(["REL", t, (e.priority==="high")?"提前 2 天提醒":"提前 1 天提醒"]);
-        alarms.push(["REL","-PT4H","截止前 4 小时"]);
-      } else if(k === "activity"){                            // 活动：提前 1 天 + 提前 1 小时
-        alarms.push(["REL","-P1D","提前 1 天提醒"]);
-        alarms.push(["REL","-PT1H","活动前 1 小时"]);
-      } else {                        // 个人：提前 2 小时 + 时间发生时
-        alarms.push(["REL","-PT2H","提前 2 小时"]);
-        alarms.push(["REL","-PT0M","时间到"]);
-      }
+      });
       /* alarm / alarm2：手动或 AI 指定的提醒（分钟），有值就覆盖默认策略。
          -1 = 没设置，0 = 时间发生时。两个都能设 → 最多两次提醒。 */
       var custom = [];
@@ -1429,6 +1560,12 @@ if(_fixOld) _fixOld.onclick = function(){
   }
   var t = document.getElementById("fixOldTxt");
   if(t) t.textContent = msg;
+};
+document.getElementById("defAlarmReset").onclick = function(){
+  DEF_ALARM = JSON.parse(JSON.stringify(DEF_ALARM_DEFAULT));
+  saveDefAlarm(); renderDefAlarm();
+  if(!document.getElementById("expCard").classList.contains("hide")) renderExport();
+  refreshSync();
 };
 
 /* ============ 课程表导入：生成解析请求 + 回填 ============ */
@@ -1895,10 +2032,13 @@ function buildPrompt(raw){
     + "· 哪些条目你判断「可能与我无关」但拿不准\n"
     + "· 有没有你本想输出但觉得证据不足而放弃的条目\n"
     + "· **默认提醒时机对哪条明显不合适？** 逐条说：这条建议提前多久、为什么。\n"
-    + "  默认：DDL 提前 1~2 天 + 截止前 4 小时；活动提前 1 天 + 1 小时；\n"
-    + "  个人提前 2 小时 + 时间发生时。\n"
+    + "  当前默认策略（网页可改）：\n"
+    + defAlarmPrompt()
     + "  例如「考场在另一个校区，路上 40 分钟 → 建议提前 90 分钟」。\n"
     + "  给建议就行，不用直接写进 alarm 字段 —— 我看了再决定要不要设。\n"
+    + "· **备注（note）由我来定**：你别主动往 note 塞东西；如果某条需要加用户备注（链接、补充信息），\n"
+    + "  问我「要写进备注吗？」，我确认后你再写入 note。\n"
+    + "· **溯源依据**放在 JSON 之后、这些问题之前，用「## 溯源依据」开头，逐条列原文短句（标第几条）。\n"
     + "先给 JSON，再提问题 —— 不要因为要问我就不输出 JSON，也不要自己憋着。\n"
     + "**提问区里不要用半角方括号 [ ]**（不要用「- [ ]」这种待办符号，改用「-」或「·」开头）：\n"
     + "我会自动截取你回复里的 JSON 数组，提问里的方括号会让我截错位置、整批解析失败。\n";
@@ -1906,6 +2046,9 @@ function buildPrompt(raw){
     + "字段：title / date(YYYY-MM-DD) / time(HH:MM) / end / endDate / type"
     + " / priority(high|medium|low) / note"
     + " / repeat / rEnd / allday / loc / alarm / alarm2 / todo\n"
+    + "\nnote（备注，可选）：**这是给用户自己写的栏**，你不要往里塞推断 / 依据 / 待确认 / 存疑原因。\n"
+    + "- 默认 null / 空；只有用户明确让我写入的备注（如「把报名链接写进备注」）才填。\n"
+    + "- 你的推断、依据、拿不准的地方 → 全去「## 溯源依据」区块和询问里说，别进 note。\n"
     + "\nend（持续多少分钟，可选，默认 30）：\n"
     + "- 填整数。原文没写时长 → 留空，我这边按 30 分钟算，不要瞎猜。\n"
     + "- 讲座 / 班会 / 会议常见 60~120；考试常见 120；打卡、签到、交材料 → 15 就够。\n"
@@ -1917,8 +2060,8 @@ function buildPrompt(raw){
     + "\nalarm / alarm2（提醒提前多少分钟，可选）：\n"
     + "- 填整数；**留空或 null 就用默认策略**，不要为了填满字段而设。\n"
     + "- 0 表示「时间发生时」提醒。alarm 是第一次，alarm2 是第二次（不需要就留空）。\n"
-    + "- 默认策略：DDL 提前 1~2 天 + 截止前 4 小时；活动提前 1 天 + 1 小时；\n"
-    + "  个人提前 2 小时 + 时间发生时。\n"
+    + "- 当前默认策略（可在网页「其他 → 默认提醒时间」里改）：\n"
+    + defAlarmPrompt()
     + "- 只在默认明显不合适时才设，例如：\n"
     + "  · 要提前出发去外校区 / 考场 → 60~90\n"
     + "  · 打卡这类只要临门一脚提醒 → 10\n"
@@ -1951,20 +2094,21 @@ function buildPrompt(raw){
     + "  拿不准就 medium，但**不要整批都是 medium**：一屏里至少要有高低的区分。\n"
     + "\ntodo（存疑标记，可选）：\n"
     + "- 你判断这件事**可能和我无关**（面向别的年级 / 别的学院 / 需选拔 / 要特定身份），\n"
-    + "  但又不确定的 → 仍然输出，加 \"todo\": true，note 写明为什么存疑。\n"
+    + "  但又不确定的 → 仍然输出，加 \"todo\": true，并在询问里说明为什么存疑（**别写进 note**）。\n"
     + "- 不要自行丢弃：留着让我自己删，比让你替我决定要不要更靠谱。\n"
     + "\n通用规则：\n"
     + "1. 今天是 " + ymd(new Date()) + "，本学期第 " + w + " 周；第 1 周周一 = " + TERM.firstMonday
     + "。“第八周”“下周三”等请据此换算成具体日期。\n"
     + "2. **关键字段都要能追溯到原文**：date / loc / alarm / repeat / endDate 这几个，\n"
-    + "   只要填了值，note 里就用「依据：」附上你据以判断的那句原文（简短引用即可）。\n"
-    + "   信息不足 → 该字段留空或 null，note 写“待确认”。\n"
-    + "   **禁止把推断当成原文写了** —— 推断不是事实，写进 note 说明即可，不要填进字段：\n"
+    + "   你据以判断的原文短句，在 JSON **之后**的「## 溯源依据」区块里逐条列出（标好对应第几条）。\n"
+    + "   —— **这部分只给你看，不要写进 JSON 的 note 字段**（否则会污染导出的日历）。\n"
+    + "   信息不足 → 该字段留空或 null，并在「## 溯源依据」里注明“待确认”，不要编。\n"
+    + "   **禁止把推断当成原文**：推断不是事实，在「## 溯源依据」或询问里说明即可，不要填进字段：\n"
     + "   · date：见上面，最常出错\n"
     + "   · loc：地点必须原文写了才填，不要从「教学楼」「校内」这类泛称里编一个出来\n"
     + "   · repeat：必须原文有「每天」「每周X」「每个工作日」这类周期表述才设，\n"
     + "     不要因为某活动恰好在周二就当成每周二\n"
-    + "   · alarm：你主动给的提醒分钟数，要在 note 或提问里说清为什么（比如「路上 40 分钟」）\n"
+    + "   · alarm：你主动给的提醒分钟数，在询问里说清为什么（比如「路上 40 分钟」）\n"
     + "3. 没有明确时间的填 time:\"23:59\"。上课 / 调课 / 停课信息不要输出 —— 课表由教务系统单独维护。\n"
     + "4. **判定为重复要保守**：只有原文明确写了「每天」「每个工作日」「每周X」这类周期表述，\n"
     + "   才设 repeat；单次活动一律 \"none\"。\n"
@@ -1980,17 +2124,18 @@ function buildPrompt(raw){
       + "   · 活动本身举行的时间 → type 用 \"activity\"\n"
       + "   只看到一个时间时，先判断它是哪一种，不要默认当成活动。\n"
       + "6. title 用具体活动名，不要照抄公众号文章标题（那通常只是宣传语）。\n"
-      + "7. 报名链接、地点、主办方、参与对象写进 note。\n"
+      + "7. 报名链接、地点、主办方、参与对象 —— 在「## 溯源依据」里原样引用给我看（**不写进 note**）；\n"
+      + "   需要存进备注时我会说，你再写入 note。\n"
       + "8. 忽略排版噪声：关注引导、“阅读原文”、在看 / 点赞、往期推荐、二维码说明、文末编辑署名。\n"
       + "9. 相关性判断：明显不是面向我的（其他学院 / 其他校区 / 已结束 / 需选拔但我不符合）\n"
-      + "   → 该条加 \"todo\": true，并在 note 里写明原因，仍然输出，不要自行丢弃。\n"
+      + "   → 该条加 \"todo\": true，并在询问里说明原因（**别写进 note**），仍然输出，不要自行丢弃。\n"
       + "10. 输入有可能只是一个链接而不是正文（文章里常有图片，直接复制会丢内容）：\n"
       + "    · 先尝试访问该链接拿到正文，再按上面规则解析。\n"
       + "    · 打不开（微信环境校验 / 需要登录 / 返回空）→ 直接回我一句\n"
       + "      「这个链接打不开，请把正文复制给我」，然后停止，不要输出 JSON。\n"
       + "      凭链接或标题编造内容是这里最严重的错误 —— 宁可什么都不输出。\n"
       + "    · 关键信息只在图片里（海报上的时间 / 地点）而你读不到 → 该字段填 null，\n"
-      + "      并在 note 写「待确认·在图片里」，不要猜。\n"
+      + "      并在「## 溯源依据」写「待确认·在图片里」，不要猜、别写进 note。\n"
       + "\n【截止时间最容易编错，单独强调】\n"
       + "11. 一条 ddl 只有在原文**明示**时才成立：出现「报名截止」「请于…前提交」\n"
       + "    「截止日期」「deadline」「逾期不补」这类明确表述，才算数。\n"
@@ -2003,7 +2148,7 @@ function buildPrompt(raw){
       + "    这不算「自行丢弃」，因为那条 ddl 本来就不存在于原文里。\n"
       + "12. 逻辑自检：如果你推出的截止时间**晚于或紧邻活动开始时间**\n"
       + "    （例如活动 10-24 18:00 举行、却推出 10-25 截止），说明推错了 ——\n"
-      + "    该条 date 填 null，note 写明矛盾点，不要硬给一个日期。\n"
+      + "    该条 date 填 null，在「## 溯源依据」写明矛盾点，不要硬给一个日期、别写进 note。\n"
       + ASK
       + "\n--- 原文 ---\n" + raw;
   }
@@ -2168,6 +2313,26 @@ function renderPreview(){
     if(card) card.scrollIntoView({ behavior:"smooth", block:"center" });
   };
 }
+/* 解析请求回贴：支持直接选 .json 文件（连小理导出的 deepseek_json_*.json / .jsom），读入后自动走解析并预览 */
+function bindJsonFile(inputId, textareaId, importId){
+  var inp = document.getElementById(inputId);
+  if(!inp) return;
+  inp.onchange = function(){
+    var f = inp.files && inp.files[0];
+    if(!f) return;
+    var r = new FileReader();
+    r.onload = function(){
+      var ta = document.getElementById(textareaId);
+      ta.value = String(r.result || "");
+      var btn = document.getElementById(importId);
+      if(btn) btn.click();            // 复用现有的「解析并预览」
+    };
+    r.readAsText(f);
+  };
+}
+bindJsonFile("nFile", "nBack", "nImport");
+bindJsonFile("cFile", "cBack", "cImport");
+
 document.getElementById("nImport").onclick = function(){
   var arr = extractJSON(document.getElementById("nBack").value);
   if(!arr){
@@ -2308,7 +2473,7 @@ document.getElementById("fDate").value = todayStr();
 document.getElementById("memoQ").oninput = function(){
   memoQ = this.value.trim(); renderMemo();
 };
-renderGutter(); renderCats(); renderMemoCats(); renderMemoRanges(); renderWeek(); renderMemo(); renderSrc(); renderNotes(); renderMark(); renderLog(); refreshSync();
+renderGutter(); renderCats(); renderWeekPri(); renderMemoCats(); renderMemoRanges(); renderMemoGroup(); renderWeek(); renderMemo(); renderSrc(); renderNotes(); renderMark(); renderLog(); renderDefAlarm(); refreshSync();
 </script>
 </body>
 </html>
