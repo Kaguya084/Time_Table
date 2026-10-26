@@ -1,4 +1,13 @@
 <!DOCTYPE html>
+<!-- 
+  =========================================
+  Project: Campus Schedule Assistant
+  Codename: K · Project Labyrinth
+  Author: Kaguya_084
+  Description: A zero-dependency, frontend-only tool to translate
+               unstructured text into standard .ics calendar events.
+  =========================================
+-->
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -487,6 +496,11 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
 /* ============ 数据（本文件不含任何个人信息，课表 / 事项由使用者导入） ============
    网页本体是「空壳」：COURSES 与 DEFAULT_EVENTS 均为空，所有数据存浏览器本地。
    TERM.firstMonday 只是占位默认值，导入课表时会被覆盖。 */
+console.log(
+  "%c K · Project Labyrinth %c Initialization Complete. \n ID: Kaguya_084",
+  "background: #000; color: #0f0; font-size: 16px; font-weight: bold; padding: 4px;",
+  "color: #0f0; background: #333; font-size: 12px;"
+);
 var TERM = { firstMonday: "2026-08-31", minWeek: 1, maxWeek: 18 };
 var DATA_VERSION = "v1-20261024";
 var CALNAME = "校园日程";
