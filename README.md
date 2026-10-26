@@ -1,8 +1,10 @@
 # 校园日程助手 · 网页端
 
-[![Version](https://img.shields.io/badge/version-v1.0.0-blue.svg)](https://github.com/Kaguya084/Time_Table/releases/tag/v1.0.0)
-[![Status](https://img.shields.io/badge/status-stable-success.svg)]()
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+> *Codename: **K · Project Labyrinth***
+> 
+> [![Version](https://img.shields.io/badge/version-v1.0.0-blue.svg)](https://github.com/Kaguya084/Time_Table/releases)
+> [![Status](https://img.shields.io/badge/status-stable-success.svg)]()
+> [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 > 把散落在教务系统、微信群、学习通、班群里的日程，变成 iPhone 原生日历里一条条带闹钟的提醒。
 
@@ -30,14 +32,15 @@
 
 ## 这是什么
 
-校园里的时间信息散落在四五个地方、格式各异，全靠脑子记。手机日历能提醒，却认不出群聊里的"10 月 31 号比赛"——**非结构化信息进不了日历，这才是断点**。
+📌 档案：Project Labyrinth
 
-本项目的定位很明确：**不做日历，做日历的上游。** iOS 原生日历已经够好，缺的只是谁来喂数据。于是做成一条流水线：
+校园里的时间信息散落在四五个地方，格式各异，像是一座由碎片信息构成的**迷宫**。
 
-- **连小理（AI 搭档）负责「想」**：解析通知、规划时间、识别冲突、生成结构化数据。
-- **网页只负责「看和点」**：打包解析请求、给人逐条核对、导出 `.ics`。网页里没有智能——不解析、不规划、不生成。
+本项目的定位很明确：**不做日历，做日历的上游。** 
+- **连小理（AI）负责破局**：解析非结构化文本、提取时间线索、生成结构化数据。
+- **网页（K 的终端）只负责落地**：打包请求、供人眼核对、导出 `.ics`。
 
-判断标准：拿掉连小理，剩下的部分与原生日历无异。
+*判断标准：拿掉连小理，剩下的部分与原生日历无异。*
 
 ## 功能特性
 
@@ -205,3 +208,9 @@
 > 重要事项请自行另行备忘。
 
 MIT © 2026 Kaguya084
+<!-- 
+  "Welcome to the Labyrinth." 
+  If you are reading this, you've found the source.
+  Stay curious, break the maze. 
+  — K (Kaguya_084)
+-->
