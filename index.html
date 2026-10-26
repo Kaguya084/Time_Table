@@ -256,6 +256,48 @@ body.force-light {
 body.force-light .col.today { background: #fffdf5 !important; }
 body.force-light button.add { background: var(--ink) !important; color: var(--bg) !important; border: none !important; }
 body.force-light .cat { background: var(--bg) !important; }
+/* ===== 终极修复：手机端表单尺寸被撑爆的 Bug ===== */
+form {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+}
+
+input, select, textarea {
+  box-sizing: border-box !important;
+  height: 40px !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  font-size: 14px !important;
+  line-height: normal !important;
+  padding: 0 10px !important;
+  margin: 0 !important;
+}
+
+input[type="date"], 
+input[type="time"] {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  -webkit-appearance: none;
+  min-height: 40px !important;
+}
+
+input[type="date"]::-webkit-date-and-time-value,
+input[type="time"]::-webkit-date-and-time-value {
+  text-align: center !important;
+}
+
+select {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  background-position: right 10px center !important;
+}
+
+input[type="checkbox"] {
+  height: 18px !important;
+  width: 18px !important;
+  margin: 0 !important;
+  flex: none !important;
+}
 </style>
 </head>
 <body>
