@@ -221,6 +221,41 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
 .da-row .da-name{font-weight:600;min-width:108px}
 .da-in{width:62px;font-size:12.5px;padding:4px 6px;border:1px solid var(--line2);border-radius:8px;
   background:var(--bg);color:var(--ink);font-family:inherit}
+/* 1. 跟随系统（当没有强制类时生效） */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink:#eee; --ink2:#aaa; --ink3:#888;
+    --line:#333; --line2:#444;
+    --bg:#1a1a1a; --bg2:#121212; --bg3:#2a2a2a;
+    --purple-bg:#2a254a; --teal-bg:#0f3328; --amber-bg:#3b2e19; --red-bg:#3b1d1d;
+  }
+  .col.today { background: #2a2a24 !important; }
+  button.add { background: #333 !important; color: #fff !important; border: 1px solid #444 !important; }
+  .cat { background: var(--bg) !important; }
+  .adbar.ddl, .adbar.activity, .adbar.personal { opacity: 0.85; }
+}
+
+/* 2. 强制暗黑 */
+body.force-dark {
+  --ink:#eee; --ink2:#aaa; --ink3:#888;
+  --line:#333; --line2:#444;
+  --bg:#1a1a1a; --bg2:#121212; --bg3:#2a2a2a;
+  --purple-bg:#2a254a; --teal-bg:#0f3328; --amber-bg:#3b2e19; --red-bg:#3b1d1d;
+}
+body.force-dark .col.today { background: #2a2a24 !important; }
+body.force-dark button.add { background: #333 !important; color: #fff !important; border: 1px solid #444 !important; }
+body.force-dark .cat { background: var(--bg) !important; }
+
+/* 3. 强制浅色（覆盖系统深色） */
+body.force-light {
+  --ink:#1a1a18; --ink2:#5f5e5a; --ink3:#888780;
+  --line:#e5e3dc; --line2:#d3d1c7;
+  --bg:#fff; --bg2:#f7f6f2; --bg3:#f1efe8;
+  --purple-bg:#eeedfe; --teal-bg:#e1f5ee; --amber-bg:#faeeda; --red-bg:#fcebeb;
+}
+body.force-light .col.today { background: #fffdf5 !important; }
+body.force-light button.add { background: var(--ink) !important; color: var(--bg) !important; border: none !important; }
+body.force-light .cat { background: var(--bg) !important; }
 </style>
 </head>
 <body>
@@ -231,7 +266,14 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
     <h1>校园日程助手</h1>
     <p class="sub">课表由连小理解析生成 · 数据保存在本机浏览器</p>
   </div>
-  <button class="btn" id="btnExport">导出 ics</button>
+      <div style="display:flex; gap:8px; align-items:center;">
+    <select id="themeSelect" style="width:100px; height:38px; padding:0 6px; border-radius:9px; font-size:12.5px; font-weight:600; border:1px solid var(--line2); background:var(--bg); color:var(--ink); cursor:pointer;">
+      <option value="system">跟随系统</option>
+      <option value="light">白天</option>
+      <option value="dark">暗黑</option>
+    </select>
+    <button class="btn" id="btnExport">导出 ics</button>
+  </div>
 </header>
 
 <div class="sync" id="sync">
@@ -253,7 +295,7 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
     <div class="cats" id="wkPriRow" style="margin-top:-4px"></div>
     <div class="wkbar">
       <button class="nav" id="prevW">‹</button>
-      <div class="n" id="wkLabel">第 1 周<small id="wkRange"></small></div>
+      <div class="n" id="wkLabel" style="cursor:pointer" title="点击跳转周次，留空回到本周" onclick="var w=prompt('跳转到第几周？（直接点确定则回到本周）'); if(w===null) return; if(w.trim()===''){ curWeek=currentWeek(); } else if(!isNaN(w) && w.trim()!==''){ curWeek=parseInt(w); } renderWeek(); renderExport();">第 1 周<small id="wkRange"></small></div>
       <button class="nav" id="nextW">›</button>
     </div>
     <div class="grid">
@@ -311,6 +353,28 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
   <div class="tip">课表为<strong>只读</strong>：它的权威来源是教务系统，在这里改会和教务系统不一致。<br>
   遇到调课 / 停课，请在对话里告诉连小理，改好后重新导出 ics。<br>
   课表 PDF 在 http://jxgl.dlut.edu.cn/student/login → 我的课表 → 大课表 处查询。</div>
+  <div class="card" id="subCard">
+    <h2>订阅外部日历 <span class="sub">支持 .ics 链接</span></h2>
+    <div class="sub" style="margin-bottom:10px;line-height:1.7">
+      输入你想要的日历订阅链接（如法定节假日），点击“打开下载”，再将下载的文件传至下方导入。<br>
+    </div>
+    
+    <div style="display:flex; gap:8px; margin-bottom:12px;">
+      <input type="url" id="subUrl" placeholder="输入 .ics 订阅链接" value="https://chinacalendar.app/ics/china-calendar-2026.ics" style="flex:1">
+      <button class="add" type="button" id="btnSubDownload" style="width:auto; margin:0; padding:0 15px; background:var(--purple)">打开下载</button>
+    </div>
+    
+    <div style="border-top:1px solid var(--line); padding-top:12px; margin-bottom:10px">
+      <div class="sub" style="margin-bottom:6px">下载后，在这里选择该 <strong>.ics 文件</strong>导入：</div>
+      <input type="file" id="subFile" accept=".ics,text/calendar">
+      <div class="sub" id="subInfo" style="margin-top:8px;color:var(--teal)"></div>
+    </div>
+    
+    <div class="lgrow" style="margin-top:10px">
+      <button class="add" type="button" id="btnSubDemo" style="margin:0;background:var(--teal)">🌟 一键注入演示节假日</button>
+      <button class="add" type="button" id="btnSubClear" style="margin:0;background:var(--ink3)">清空已订阅</button>
+    </div>
+  </div>
 </section>
 
 <!-- 备忘录页 -->
@@ -451,6 +515,17 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
 <section id="v-log" class="hide">
   <div class="card">
     <h2>数据备份 / 迁移</h2>
+      <div class="card" style="margin-top:14px">
+    <h2>学期设置 <span class="sub">设置第一周的周一</span></h2>
+    <div class="sub" style="margin-bottom:9px;line-height:1.7">
+      设置后，日程表会据此计算「第 X 周」以及对应的真实年月日。
+    </div>
+    <div class="erow" style="margin-bottom:10px">
+      <input type="date" id="setFirstMonday" style="margin-bottom:0">
+      <button class="add" type="button" id="saveFirstMonday" style="margin:0">保存设置</button>
+    </div>
+    <div class="sub" id="termInfo" style="color:var(--teal)"></div>
+  </div>
     <div class="sub" style="margin-bottom:9px;line-height:1.7">
       数据存在<strong>浏览器本地</strong>，按网址隔离 —— 换网址（比如换到 GitHub Pages）就等于换了一份空数据。<br>
       换之前先「复制全部数据」，到新地址「粘贴恢复」即可。
@@ -497,11 +572,16 @@ footer{text-align:center;font-size:11px;color:var(--ink3);margin-top:20px;line-h
    网页本体是「空壳」：COURSES 与 DEFAULT_EVENTS 均为空，所有数据存浏览器本地。
    TERM.firstMonday 只是占位默认值，导入课表时会被覆盖。 */
 console.log(
-  "%c K · Project Labyrinth %c Initialization Complete. \n ID: Kaguya_084",
-  "background: #000; color: #0f0; font-size: 16px; font-weight: bold; padding: 4px;",
-  "color: #0f0; background: #333; font-size: 12px;"
+  "%c [ SYSTEM ONLINE ] %c Project Labyrinth v1.1 \n Access granted. Welcome, Evaluator.",
+  "background: #0f0; color: #000; font-weight: bold; padding: 4px;",
+  "color: #0f0; background: #222; padding: 4px;"
 );
+var K_TERM = "cs_term_v1";
 var TERM = { firstMonday: "2026-08-31", minWeek: 1, maxWeek: 18 };
+try {
+  var savedTerm = localStorage.getItem(K_TERM);
+  if (savedTerm) TERM.firstMonday = savedTerm;
+} catch(e) {}
 var DATA_VERSION = "v1-20261024";
 var CALNAME = "校园日程";
 
@@ -514,6 +594,16 @@ var CATS = [
   {k:"personal", label:"个人", file:"个人.ics",   cal:"个人"}
 ];
 var showCats = { course:true, activity:true, ddl:true, personal:true };  // 默认全勾选
+
+// ===== 订阅日历功能 =====
+var K_SUB = "cs_sub_events_v1";
+var showSub = true;
+function loadSubEvents(){
+  try{ var v = JSON.parse(localStorage.getItem(K_SUB)||"[]"); return Array.isArray(v)?v:[]; }
+  catch(e){ return []; }
+}
+var SUB_EVENTS = loadSubEvents();
+
 function catOf(k){ for(var i=0;i<CATS.length;i++) if(CATS[i].k===k) return CATS[i]; return CATS[0]; }
 function catLabel(k){ return catOf(k).label; }
 
@@ -671,7 +761,7 @@ function pendingCats(){
 }
 
 /* ============ 渲染：课表 ============ */
-var curWeek = Math.min(Math.max(currentWeek(), TERM.minWeek), TERM.maxWeek);
+var curWeek = currentWeek();
 
 function renderGutter(){
   var h = (DAY_BOT-DAY_TOP)*PX_PER_MIN, html="";
@@ -723,6 +813,20 @@ function renderWeek(){
     // 整日横条：单日全天(allday) + 跨天(endDate 区间内每天)，画在列顶部。
     // 跨天和 ICS 导出语义保持一致：网页与时间轴都按整日横条处理。
     var adBox = document.getElementById("a"+d2);
+    
+    // ===== 渲染订阅的节假日/日历 =====
+    if(showSub){
+      var subAds = SUB_EVENTS.filter(function(e){ return repeatHit(e, dayStr); });
+      subAds.forEach(function(e){
+        var sBar = document.createElement("div");
+        sBar.className = "adbar";
+        sBar.style.backgroundColor = "#854f0b"; // 使用琥珀色/棕色代表订阅内容
+        sBar.textContent = e.title;
+        adBox.appendChild(sBar);
+        nEvt++; // 计入事项总数
+      });
+    }
+
     var ads = evts.filter(function(e){
       if(e.allday && repeatHit(e, dayStr)) return true;
       if(e.endDate && e.date <= dayStr && dayStr <= e.endDate) return true;
@@ -748,8 +852,8 @@ function renderWeek(){
       var el=document.createElement("div");
       el.className="blk evt e-"+e.type;
       el.style.top=top+"px";
-      el.style.height=((+e.end>0 ? +e.end : 30)*PX_PER_MIN - 2)+"px";   // 用 end 显示时长
-      el.innerHTML='<b>'+esc(e.title)+'</b><span>'+tm+'</span>';
+      el.style.height=((+e.end>0 ? +e.end : 30)*PX_PER_MIN - 2)+"px";
+      el.innerHTML='<b>'+escHtml(e.title)+'</b><span>'+tm+'</span>';
       box.appendChild(el);
     });
     // 当前时间线
@@ -763,18 +867,24 @@ function renderWeek(){
     }
   }
   var ws=dateOf(curWeek,1), we=dateOf(curWeek,7);
-  document.getElementById("wkLabel").innerHTML = "第 "+curWeek+" 周<small>"
-    + (ws.getMonth()+1)+"/"+ws.getDate()+" – "+(we.getMonth()+1)+"/"+we.getDate()+"</small>";
+  var weekTitle = curWeek < 1 ? "未开学" : ("第 " + curWeek + " 周");
+  document.getElementById("wkLabel").innerHTML = 
+    '<span style="display:inline-block; background:var(--purple-bg); color:var(--purple); padding:3px 12px; border-radius:20px; font-size:13px; font-weight:600; border:1px solid var(--purple); margin-bottom:2px;">' 
+    + weekTitle + ' 🔍 跳转</span>' 
+    + '<small style="display:block; margin-top:2px;">' + (ws.getMonth()+1)+"/"+ws.getDate()+" – "+(we.getMonth()+1)+"/"+we.getDate() + '</small>';
   var sum;
-  if(!COURSES.length && !loadEvts().length){
-    sum = '<div class="empty">还没有任何数据。<br>到页面底部用「导入 / 更新课程表」或「导入 ics 文件」把课表装进来。</div>';
-  } else {
+    if(!COURSES.length && !loadEvts().length){
+    sum = '<div class="empty">还没有任何数据。<br>到页面底部用「导入 / 更新课程表」或「导入 ics 文件」把课表装进来。<br><br>'
+        + '<button class="add" style="width:auto; margin:0 auto; display:block; padding:0 20px;" onclick="loadDemoData()">🌟 点击载入演示数据体验</button></div>';
+  }  else if(curWeek < 1) {
+    sum = "还未开学，享受假期吧！";
+  }  else {
     sum = "本周共 "+n+" 节课 · "+nEvt+" 项事项"
         + (curWeek===currentWeek()?"（本周）":"（非本周，点上方 ‹ › 切换）");
   }
   document.getElementById("wkSum").innerHTML = sum
     + (alias.length?'<div style="margin-top:8px;font-size:11.5px;color:var(--ink3);line-height:1.8">'
-        +'课程全称对照：<br>'+alias.map(esc).join("<br>")+'</div>':'');
+        +'课程全称对照：<br>'+alias.map(escHtml).join("<br>")+'</div>':'');
 }
 
 /* ============ 渲染：备忘录 ============ */
@@ -876,6 +986,12 @@ function repeatHit(e, ds){
   var wd = dOf(ds).getDay();                       // 0=周日
   if(e.repeat === "weekday") return wd >= 1 && wd <= 5;
   if(e.repeat === "weekly") return wd === dOf(e.date).getDay();
+  
+  // 🔽 新增：支持订阅日历的每年重复（法定节假日）
+  if(e.repeat === "yearly") {
+      var d1 = dOf(e.date), d2 = dOf(ds);
+      return d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
+  }
   return false;
 }
 /* 重复次数（用于生成提示与导出） */
@@ -948,7 +1064,7 @@ function memoRow(e, tStr){
         + (selIds[e.id]?" checked":"") + '>' : '')
     + '<button class="chk'+(e.done?" on":"")+'" data-tog="'+e.id+'">✓</button>'
     + '<div class="rm'+(e.done?" done":"")+'" data-edit="'+e.id+'">'
-    +   '<div class="t">'+esc(e.title)+'</div>'
+    +   '<div class="t">'+escHtml(e.title)+'</div>'
     +   '<div class="m"><span class="pill p-'+e.type+'">'+typeLabel(e.type)+'</span>'
     +     '<span class="pill p-'+e.priority+'">'+priLabel(e.priority)+'</span>'
     +     (over?'<span class="od">'+overTxt+'</span>':'')
@@ -960,11 +1076,11 @@ function memoRow(e, tStr){
           ? ' <span class="pill p-'+e.type+'">'+repLabel(e.repeat)+' · '+repCount(e)+' 次</span>'
             + (e.rEnd?'<span class="rp">至 '+e.rEnd.slice(5)+'</span>':'')
           : '')
-    +     (e.loc ? ' <span class="rp">@'+esc(e.loc)+'</span>' : '')
+    +     (e.loc ? ' <span class="rp">@'+escHtml(e.loc)+'</span>' : '')
     +     (e.alarm>0 ? ' <span class="rp">提醒 提前'+fmtDur(e.alarm)+'</span>' : '')
     +     ' · <span class="edithint">点这里改</span>'
     +   '</div>'
-    +   (e.note?'<div class="m" style="color:var(--ink3)">'+esc(e.note)+'</div>':'')
+    +   (e.note?'<div class="m" style="color:var(--ink3)">'+escHtml(e.note)+'</div>':'')
     + '</div>'
     + '<button class="del" data-del="'+e.id+'">×</button></div>';
 }
@@ -1177,8 +1293,12 @@ function renderCats(){
     html += '<button class="cat k-'+c.k+(showCats[c.k]?" on":"")+'" data-k="'+c.k+'">'
           + '<span class="box"></span>'+c.label+'</button>';
   });
+  // 🔽 新增订阅日历开关
+  html += '<button class="cat k-activity'+(showSub?" on":"")+'" id="btnSubCat" style="margin-left:10px">'
+        + '<span class="box"></span>订阅日历</button>';
+        
   box.innerHTML=html;
-  Array.prototype.forEach.call(box.querySelectorAll(".cat"), function(b){
+  Array.prototype.forEach.call(box.querySelectorAll(".cat[data-k]"), function(b){
     b.onclick=function(){
       var k=b.getAttribute("data-k");
       showCats[k]=!showCats[k];
@@ -1186,6 +1306,12 @@ function renderCats(){
       renderWeek();
     };
   });
+  // 🔽 绑定订阅开关事件
+  document.getElementById("btnSubCat").onclick = function(){
+    showSub = !showSub;
+    this.classList.toggle("on", showSub);
+    renderWeek();
+  };
 }
 /* 日程表页：优先级筛选（课表无优先级，始终显示；事项按优先级开关，缺省按「中」） */
 function renderWeekPri(){
@@ -1367,8 +1493,8 @@ function gotoExport(){
 }
 document.getElementById("btnExport").onclick = gotoExport;
 document.getElementById("syncAct").onclick = gotoExport;
-document.getElementById("prevW").onclick=function(){ if(curWeek>TERM.minWeek){curWeek--;renderWeek();renderExport();} };
-document.getElementById("nextW").onclick=function(){ if(curWeek<TERM.maxWeek){curWeek++;renderWeek();renderExport();} };
+document.getElementById("prevW").onclick=function(){ curWeek--; renderWeek(); renderExport(); };
+document.getElementById("nextW").onclick=function(){ curWeek++; renderWeek(); renderExport(); };
 
 document.querySelectorAll(".tab").forEach(function(t){
   t.onclick=function(){
@@ -1611,7 +1737,9 @@ var COURSE_PROMPT =
 + "2. 遇到上面 5 条之外的节次，不要猜 —— 该条加 \"todo\": true，并在 name 后面写（待确认）。\n"
 + "3. 理论课与上机/实验课时间不同就要拆成两条；同一门课一周多次也各写一条。\n"
 + "4. 看不清的教室或周次，一律标待确认，禁止编造。\n"
-+ "5. 输出 JSON 之后，请把你给的简称逐条列成清单问我：\n"
++ "5. 如果课表包含「单周」「双周」或类似表述，请直接转换为具体数字。\n"
++ "   例如：1-15周单周 → \"1,3,5,7,9,11,13,15\"；1-15周双周 → \"2,4,6,8,10,12,14\"。\n"
++ "6. 输出 JSON 之后，请把你给的简称逐条列成清单问我：\n"
 + "   「这些简称可以吗？想改哪个直接说。」\n"
 + "   简称是我每天在手机课表上看到的名字，也是日历格子里唯一放得下的形式，很重要 —— 不要跳过这一步。\n";
 
@@ -1699,6 +1827,7 @@ function renderCoursePreview(){
   document.getElementById("cConfirm").onclick = function(){
     if(pendTerm && pendTerm.firstMonday && /^\d{4}-\d{2}-\d{2}$/.test(pendTerm.firstMonday)){
       TERM.firstMonday = pendTerm.firstMonday;
+      localStorage.setItem(K_TERM, TERM.firstMonday);
       FM = fmDate();
     }
     localStorage.setItem(K_COURSES, JSON.stringify(pendCourses));
@@ -2487,7 +2616,189 @@ document.getElementById("fDate").value = todayStr();
 document.getElementById("memoQ").oninput = function(){
   memoQ = this.value.trim(); renderMemo();
 };
-renderGutter(); renderCats(); renderWeekPri(); renderMemoCats(); renderMemoRanges(); renderMemoGroup(); renderWeek(); renderMemo(); renderSrc(); renderNotes(); renderMark(); renderLog(); renderDefAlarm(); refreshSync();
+// 学期设置逻辑
+function renderTermSetting() {
+  var el = document.getElementById("setFirstMonday");
+  if (el) el.value = TERM.firstMonday;
+}
+document.getElementById("saveFirstMonday").onclick = function() {
+  var val = document.getElementById("setFirstMonday").value;
+  if (!val) return alert("请选择日期");
+  TERM.firstMonday = val;
+  localStorage.setItem(K_TERM, val);
+  FM = fmDate();
+  curWeek = currentWeek();
+  renderWeek();
+  renderExport();
+  alert("✅ 第一周设置已保存，日程表已更新！");
+};
+renderGutter(); renderCats(); renderWeekPri(); renderMemoCats(); renderMemoRanges(); renderMemoGroup(); renderWeek(); renderMemo(); renderSrc(); renderNotes(); renderMark(); renderLog(); renderDefAlarm(); refreshSync();renderTermSetting();
+function loadDemoData(){
+  var today = ymd(new Date());
+  
+  // 1. 模拟一份真实的大一满课表（包含长名字、简称、不同时段）
+  var demoCourses = [
+    { id:"c01", name:"高等数学(上)", short:"高数", full:"高等数学(上)", day:1, start:"08:00", endT:"09:35", room:"综合教学1号楼 101", w:"1-16", weeks:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16] },
+    { id:"c02", name:"大学物理", short:"大物", full:"大学物理", day:1, start:"10:05", endT:"11:40", room:"理科楼 204", w:"1-16", weeks:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16] },
+    { id:"c03", name:"大学英语", short:"英语", full:"大学英语", day:2, start:"08:00", endT:"09:35", room:"外语楼 302", w:"1-16", weeks:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16] },
+    { id:"c04", name:"体育（篮球）", short:"体育", full:"体育（篮球）", day:2, start:"13:30", endT:"15:05", room:"体育中心", w:"1-16", weeks:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16] },
+    { id:"c05", name:"计算机程序设计", short:"程设", full:"计算机程序设计", day:3, start:"10:05", endT:"11:40", room:"机房 401", w:"1-16", weeks:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16] },
+    { id:"c06", name:"中国近现代史纲要", short:"史纲", full:"中国近现代史纲要", day:3, start:"15:35", endT:"17:10", room:"文科楼 105", w:"1-16", weeks:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16] },
+    { id:"c07", name:"线性代数", short:"线代", full:"线性代数", day:4, start:"08:00", endT:"09:35", room:"综合教学1号楼 201", w:"1-16", weeks:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16] },
+    { id:"c08", name:"大学生心理健康", short:"心理", full:"大学生心理健康", day:5, start:"10:05", endT:"11:40", room:"文科楼 301", w:"1-16", weeks:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16] },
+    { id:"c09", name:"周末讲座：AI与未来", short:"AI讲座", full:"周末讲座：AI与未来", day:6, start:"14:00", endT:"15:35", room:"图书馆报告厅", w:"4-4", weeks:[4] } // 只在第4周出现
+  ];
+  
+  // 2. 模拟各种类型的事项（涵盖时间轴、全天横条、跨天横条、分类、优先级）
+  var demoEvents = [
+    // 正常时段事项（时间改到 20:00，避免跑到底部）
+    { id:"e1", title:"高数第三章作业提交", date:today, time:"20:00", end:15, type:"ddl", priority:"high", done:false, note:"共5题，注意格式" },
+    { id:"e2", title:"社团迎新晚会", date:ymd(dateOf(curWeek, 3)), time:"18:30", end:120, type:"activity", priority:"medium", done:false, loc:"大学生活动中心" },
+    { id:"e3", title:"去快递站取件", date:ymd(dateOf(curWeek, 5)), time:"17:00", end:30, type:"personal", priority:"low", done:false },
+    
+    // 已完成的待办（测试划掉效果）
+    { id:"e4", title:"交物理实验报告", date:ymd(dateOf(curWeek, 1)), time:"10:00", end:30, type:"ddl", priority:"medium", done:true },
+    
+    // 全天事件（会在顶部变成红条）
+    { id:"e5", title:"新生体检", date:ymd(dateOf(curWeek, 4)), allday:true, time:"08:00", end:30, type:"activity", priority:"high", done:false, loc:"校医院" },
+    
+    // 跨天事件（会在顶部变成多天连续绿条）
+    { id:"e6", title:"国庆假期", date:ymd(dateOf(curWeek, 6)), endDate:ymd(dateOf(curWeek, 7)), allday:false, time:"00:00", end:30, type:"personal", priority:"low", done:false },
+    
+    // 重复任务（打卡时间改到中午 12:30，完美避开所有课程）
+    { id:"e7", title:"每日英语打卡", date:ymd(dateOf(curWeek, 1)), time:"12:30", end:15, type:"personal", priority:"medium", repeat:"daily", rEnd:ymd(new Date(new Date().getTime() + 30*86400000)), done:false }
+  ];
+  
+  localStorage.setItem("cs_courses_v1", JSON.stringify(demoCourses));
+  localStorage.setItem("cs_events_v1", JSON.stringify(demoEvents));
+
+    // 注入国庆节和元旦的模拟订阅数据（防止拉取失败）
+  var demoSub = [
+    { id:"s1", title:"国庆节", date:"2026-10-01", allday:true, repeat:"yearly" },
+    { id:"s2", title:"国庆节", date:"2026-10-02", allday:true, repeat:"yearly" },
+    { id:"s3", title:"国庆节", date:"2026-10-03", allday:true, repeat:"yearly" },
+    { id:"s4", title:"元旦", date:"2027-01-01", allday:true, repeat:"yearly" }
+  ];
+  localStorage.setItem(K_SUB, JSON.stringify(demoSub));
+
+  location.reload();
+}
+// ===== 订阅日历逻辑 =====
+// 点击在新标签页打开链接（触发浏览器下载）
+document.getElementById("btnSubDownload").onclick = function(){
+  var url = document.getElementById("subUrl").value.trim();
+  if(!url) return alert("请输入 .ics 链接");
+  if(url.indexOf("http") !== 0) return alert("请输入以 http 开头的合法链接");
+  
+  // 在新窗口打开链接，浏览器会自动下载或展示该文件
+  window.open(url, "_blank");
+};
+// 1. 手动上传 ics 文件
+document.getElementById("subFile").onchange = function(){
+  var f = this.files && this.files[0];
+  if(!f) return;
+  var info = document.getElementById("subInfo");
+  info.textContent = "正在解析文件...";
+  
+  var r = new FileReader();
+  r.onload = function(){
+    var evts = parseICS(r.result);
+    var newSubItems = [];
+    
+    evts.forEach(function(e) {
+        if (!e.DTSTART) return;
+        var st = icsToLocal(e.DTSTART.v, e.DTSTART.p);
+        if (!st) return;
+        var title = unesc(e.SUMMARY ? e.SUMMARY.v : "订阅事件");
+        
+        var rep = "none";
+        var rr = e.RRULE ? e.RRULE.v : "";
+        if (/FREQ=YEARLY/i.test(rr)) rep = "yearly";
+        else if (/FREQ=WEEKLY/i.test(rr)) rep = "weekly";
+        
+        var rEnd = "";
+        var u = rr.match(/UNTIL=(\d{8})/);
+        if (u) rEnd = u[1].slice(0,4)+"-"+u[1].slice(4,6)+"-"+u[1].slice(6,8);
+
+        newSubItems.push({
+            id: uid(),
+            title: title,
+            date: st.date,
+            time: st.time || "00:00",
+            allday: st.allday,
+            repeat: rep,
+            rEnd: rEnd
+        });
+    });
+    
+    if(newSubItems.length === 0){
+      info.textContent = "未解析到有效事件，请检查文件格式。";
+      info.style.color = "var(--red)";
+      return;
+    }
+    
+    localStorage.setItem(K_SUB, JSON.stringify(newSubItems));
+    alert("✅ 成功导入 " + newSubItems.length + " 个订阅事件！");
+    location.reload();
+  };
+  r.readAsText(f, "utf-8");
+};
+
+// 2. 一键注入演示节假日
+document.getElementById("btnSubDemo").onclick = function(){
+  var demoSub = [
+    { id:"s1", title:"国庆节", date:"2026-10-01", allday:true, repeat:"yearly" },
+    { id:"s2", title:"国庆节", date:"2026-10-02", allday:true, repeat:"yearly" },
+    { id:"s3", title:"国庆节", date:"2026-10-03", allday:true, repeat:"yearly" },
+    { id:"s4", title:"国庆节", date:"2026-10-04", allday:true, repeat:"yearly" },
+    { id:"s5", title:"国庆节", date:"2026-10-05", allday:true, repeat:"yearly" },
+    { id:"s6", title:"国庆节", date:"2026-10-06", allday:true, repeat:"yearly" },
+    { id:"s7", title:"国庆节", date:"2026-10-07", allday:true, repeat:"yearly" },
+    { id:"s8", title:"元旦", date:"2027-01-01", allday:true, repeat:"yearly" }
+  ];
+  localStorage.setItem(K_SUB, JSON.stringify(demoSub));
+  alert("✅ 成功注入法定节假日体验数据！请查看日程表顶部。");
+  location.reload();
+};
+
+// 3. 清空订阅
+document.getElementById("btnSubClear").onclick = function(){
+  if(confirm("确定要清空已订阅的日历吗？")){
+    localStorage.removeItem(K_SUB);
+    location.reload();
+  }
+};
+// 键盘左右键快捷切周
+document.addEventListener('keydown', function(e) {
+  if(e.key === 'ArrowLeft') { document.getElementById('prevW').click(); }
+  if(e.key === 'ArrowRight') { document.getElementById('nextW').click(); }
+});
+// ===== 主题切换逻辑 =====
+function applyTheme(theme) {
+  document.body.classList.remove('force-light', 'force-dark');
+  
+  if (theme === 'dark') {
+    document.body.classList.add('force-dark');
+  } else if (theme === 'light') {
+    document.body.classList.add('force-light');
+  }
+  // 如果是 system，不加任何 class，直接交由 CSS 的 @media 接管
+
+  // 保存到本地
+  localStorage.setItem('cs_theme', theme);
+  // 更新下拉框状态
+  var sel = document.getElementById('themeSelect');
+  if (sel) sel.value = theme;
+}
+
+// 启动时初始化
+var savedTheme = localStorage.getItem('cs_theme') || 'system';
+applyTheme(savedTheme);
+
+// 监听下拉框切换
+document.getElementById('themeSelect').onchange = function(e) {
+  applyTheme(e.target.value);
+};
 </script>
 </body>
 </html>
