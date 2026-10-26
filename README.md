@@ -1,8 +1,13 @@
 # 校园日程助手 · 网页端
 
+[![Version](https://img.shields.io/badge/version-v1.0.0-blue.svg)](https://github.com/Kaguya084/Time_Table/releases/tag/v1.0.0)
+[![Status](https://img.shields.io/badge/status-stable-success.svg)]()
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 > 把散落在教务系统、微信群、学习通、班群里的日程，变成 iPhone 原生日历里一条条带闹钟的提醒。
 
 **版本：v1.0.0** · 更新日期：2026-10-24 · 数据版本标记：`v1-20261024`
+> 💡 *注：本 `main` 分支为比赛交卷的稳定版。最新的 UI 打磨与迭代开发正在 [`dev`](../../tree/dev) 分支进行，详见 [Changelog](../../blob/dev/README.md#-更新日志-changelog)。*
 
 ---
 
