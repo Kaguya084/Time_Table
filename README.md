@@ -2,13 +2,13 @@
 
 > *Codename: **K · Project Labyrinth***
 
-[![Version](https://img.shields.io/badge/version-v1.1.0-blue.svg)](https://github.com/Kaguya084/Time_Table/releases)
+[![Version](https://img.shields.io/badge/version-v1.1.1-blue.svg)](https://github.com/Kaguya084/Time_Table/releases)
 [![Status](https://img.shields.io/badge/status-stable-success.svg)]()
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 > 把散落在教务系统、微信群、学习通、班群里的日程，变成 iPhone 原生日历里一条条带闹钟的提醒。
 
-**版本：v1.1.0** · 更新日期：2026-10-26 · 数据版本标记：`v1-20261024`
+**版本：v1.1.1** · 更新日期：2026-10-26 · 数据版本标记：`v1-20261024`
 
 ---
 
@@ -147,6 +147,13 @@
 - **ics 反推周次**依赖当前设置的「第一周周一」，学期不符时请在设置中手动调整。
 
 ## 更新日志
+
+### v1.1.1 · 2026-10-26
+- **修复**：iOS Safari 下「添加事项」面板的日期 / 时间选择器被系统撑大、顶破表单网格的问题。
+- **修复**：暗黑模式下部分输入框、下拉菜单仍为白底黑字的问题。
+- **优化**：统一全站 `input` / `select` / `textarea` 的高度、内边距与边框，移动端表单观感一致。
+
+> 纯样式补丁：无键名变更，升级无需迁移数据。
 
 ### v1.1.0 · 2026-10-26
 - **新增**：一键载入演示数据，方便快速体验。
